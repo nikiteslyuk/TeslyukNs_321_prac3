@@ -9,41 +9,51 @@ if len(sys.argv) == 2:
     for branch in Path(repo_path).glob(".git/refs/heads/*"):
         print(basename(branch))
 if len(sys.argv) == 3:
+
     repo_path, branch = sys.argv[1], sys.argv[2]
 
     with open(Path(repo_path) / f".git/refs/heads/{branch}", "rb") as f:
         commit_id = f.read().strip().decode()
 
-    commit_path = Path(repo_path) / f".git/objects/{commit_id[:2]}/{commit_id[2:]}"
+    while commit_id:
+        commit_path = Path(repo_path) / f".git/objects/{commit_id[:2]}/{commit_id[2:]}"
 
-    with open(commit_path, "rb") as f:
-        obj = zlib.decompress(f.read())
+        with open(commit_path, "rb") as f:
+            obj = zlib.decompress(f.read())
 
-    _, _, body = obj.partition(b"\x00")
-    lines = body.decode().split("\n")
+        _, _, body = obj.partition(b"\x00")
+        lines = body.decode().split("\n")
 
-    for line in lines:
-        if line.startswith("tree "):
-            tree_id = line.split()[1]
-            break
+        for line in lines:
+            if line.startswith("tree "):
+                tree_id = line.split()[1]
+                break
 
-    tree_path = Path(repo_path) / f".git/objects/{tree_id[:2]}/{tree_id[2:]}"
+        print(f"TREE for commit {commit_id}")
 
-    with open(tree_path, "rb") as f:
-        obj = zlib.decompress(f.read())
+        tree_path = Path(repo_path) / f".git/objects/{tree_id[:2]}/{tree_id[2:]}"
 
-    _, _, tree_body = obj.partition(b"\x00")
+        with open(tree_path, "rb") as f:
+            obj = zlib.decompress(f.read())
 
-    while tree_body:
-        entry, _, tree_body = tree_body.partition(b"\x00")
-        mode, name = entry.split()
-        sha1, tree_body = tree_body[:20], tree_body[20:]
+        _, _, tree_body = obj.partition(b"\x00")
 
-        mode = mode.decode()
-        name = name.decode()
-        sha1_hex = sha1.hex()
+        while tree_body:
+            entry, _, tree_body = tree_body.partition(b"\x00")
+            mode, name = entry.split()
+            sha1, tree_body = tree_body[:20], tree_body[20:]
 
-        if mode.startswith("10"):  # Это blob (файл)
-            print(f"blob {sha1_hex}    {name}")
-        elif mode.startswith("40"):  # Это tree (папка)
-            print(f"tree {sha1_hex}    {name}")
+            mode = mode.decode()
+            name = name.decode()
+            sha1_hex = sha1.hex()
+
+            if mode.startswith("10"):
+                print(f"blob {sha1_hex}    {name}")
+            elif mode.startswith("40"):
+                print(f"tree {sha1_hex}    {name}")
+
+        commit_id = None
+        for line in lines:
+            if line.startswith("parent "):
+                commit_id = line.split()[1]
+                break
