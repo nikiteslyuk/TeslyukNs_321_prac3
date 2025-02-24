@@ -2,7 +2,8 @@ import cowsay
 
 
 def encounter(x, y):
-    print(cowsay.cowsay(field[x][y]))
+    name, hello = field[x][y]
+    print(cowsay.cowsay(hello, cow=name))
 
 
 gridsize = 10
@@ -38,7 +39,7 @@ while command := input(">> "):
             print(f"Added monster {name} to ({crds[0]}, {crds[1]}) saying {hello}")
             if field[crds[1]][crds[0]]:
                 print("Replaced the old monster")
-            field[crds[1]][crds[0]] = hello
+            field[crds[1]][crds[0]] = name, hello
             stay = True
         case _:
             print("Invalid command")
