@@ -31,10 +31,10 @@ while command := input(">> "):
             player[0] %= gridsize
             print(f"Moved to ({player[0]}, {player[1]})")
         case ["addmon", x, y, hello]:
-            crds = [int(x), int(y)]
             if not x.isdigit() or not y.isdigit():
                 print("Invalid arguments")
                 break
+            crds = [int(x), int(y)]
             print(f"Added monster to ({crds[0]}, {crds[1]}) saying {hello}")
             if field[crds[1]][crds[0]]:
                 print("Replaced the old monster")
