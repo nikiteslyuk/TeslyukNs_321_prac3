@@ -1,9 +1,28 @@
 import cowsay
+from io import StringIO
+
+
+jgsbat = r"""
+    ,_                    _,
+    ) '-._  ,_    _,  _.-' (
+    )  _.-'.|\\--//|.'-._  (
+     )'   .'\/o\/o\/'.   `(
+      ) .' . \====/ . '. (
+       )  / <<    >> \  (
+        '-._/``  ``\_.-'
+  jgs     __\\'--'//__
+         (((""`  `"")))
+"""
+
+jgsbat_cow = cowsay.read_dot_cow(StringIO(jgsbat))
 
 
 def encounter(x, y):
     name, hello = field[x][y]
-    print(cowsay.cowsay(hello, cow=name))
+    if name == "jgsbat":
+        print(cowsay.cowsay(hello, cowfile=jgsbat_cow))
+    else:
+        print(cowsay.cowsay(hello, cow=name))
 
 
 gridsize = 10
@@ -32,7 +51,11 @@ while command := input(">> "):
             player[0] %= gridsize
             print(f"Moved to ({player[0]}, {player[1]})")
         case ["addmon", x, y, name, hello]:
-            if not x.isdigit() or not y.isdigit() or name not in cowsay.list_cows():
+            if (
+                not x.isdigit()
+                or not y.isdigit()
+                or not (name in cowsay.list_cows() or name == "jgsbat")
+            ):
                 print("Invalid arguments")
                 continue
             crds = [int(x), int(y)]
