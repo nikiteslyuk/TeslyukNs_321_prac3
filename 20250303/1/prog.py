@@ -1,4 +1,5 @@
 import cowsay
+import shlex
 from io import StringIO
 
 
@@ -16,7 +17,7 @@ jgsbat = r"""
 
 jgsbat_cow = cowsay.read_dot_cow(StringIO(jgsbat))
 
-pritn("<<< Welcome to Python-MUD 0.1 >>>")
+print("<<< Welcome to Python-MUD 0.1 >>>")
 
 
 def encounter(x, y):
