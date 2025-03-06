@@ -16,6 +16,8 @@ jgsbat = r"""
 
 jgsbat_cow = cowsay.read_dot_cow(StringIO(jgsbat))
 
+pritn("<<< Welcome to Python-MUD 0.1 >>>")
+
 
 def encounter(x, y):
     name, hello = field[x][y]
