@@ -21,7 +21,7 @@ print("<<< Welcome to Python-MUD 0.1 >>>")
 
 
 def encounter(x, y):
-    name, hello = field[x][y]
+    name, hello, hp = field[x][y]
     if name == "jgsbat":
         print(cowsay.cowsay(hello, cowfile=jgsbat_cow))
     else:
@@ -34,7 +34,7 @@ player = [0, 0]
 
 
 while command := input(">> "):
-    comm = command.split()
+    comm = shlex.split(command)
     stay = False
     match comm:
         case ["up"]:
@@ -53,19 +53,41 @@ while command := input(">> "):
             player[0] -= 1
             player[0] %= gridsize
             print(f"Moved to ({player[0]}, {player[1]})")
-        case ["addmon", x, y, name, hello]:
-            if (
-                not x.isdigit()
-                or not y.isdigit()
-                or not (name in cowsay.list_cows() or name == "jgsbat")
-            ):
-                print("Invalid arguments")
+        case ["addmon", name, *args]:
+
+            try:
+                parsed = {}
+                i = 0
+                while i < len(args):
+                    key = args[i]
+                    if key == "coords":
+                        parsed[key] = (int(args[i + 1]), int(args[i + 2]))
+                        i += 3
+                    else:
+                        parsed[key] = args[i + 1]
+                        i += 2
+            except (IndexError, ValueError):
+                print("Invalid command")
                 continue
-            crds = [int(x), int(y)]
-            print(f"Added monster {name} to ({crds[0]}, {crds[1]}) saying {hello}")
-            if field[crds[1]][crds[0]]:
+
+            if not all(k in parsed for k in ("coords", "hp", "hello")):
+                print("Missing required parameters")
+                continue
+
+            x, y = parsed["coords"]
+            hp = int(parsed["hp"])
+            hello = parsed["hello"]
+
+            if name not in cowsay.list_cows():
+                print("Unknown monster name")
+                continue
+
+            if field[y][x]:
                 print("Replaced the old monster")
-            field[crds[1]][crds[0]] = name, hello
+
+            field[y][x] = name, hello, hp
+            print(f"Added {name} at ({x},{y}) saying {hello}, HP: {hp}")
+
             stay = True
         case _:
             print("Invalid command")
