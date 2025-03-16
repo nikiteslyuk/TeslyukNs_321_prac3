@@ -4,98 +4,89 @@ import shlex
 from io import StringIO
 
 
-jgsbat = r"""
-    ,_                    _,
-    ) '-._  ,_    _,  _.-' (
-    )  _.-'.|\\--//|.'-._  (
-     )'   .'\/o\/o\/'.   `(
-      ) .' . \====/ . '. (
-       )  / <<    >> \  (
-        '-._/``  ``\_.-'
-  jgs     __\\'--'//__
-         (((""`  `"")))
-"""
+class MudGame(cmd.Cmd):
+    prompt = ">> "
 
-jgsbat_cow = cowsay.read_dot_cow(StringIO(jgsbat))
+    def encounter(self, x, y):
+        """Обработка встречи с монстром"""
+        name, hello, hp = field[x][y]
+        if name == "jgsbat":
+            print(cowsay.cowsay(hello, cowfile=jgsbat_cow))
+        else:
+            print(cowsay.cowsay(hello, cow=name))
 
-print("<<< Welcome to Python-MUD 0.1 >>>")
+    def move_player(self, dx, dy):
+        """Перемещение игрока и проверка на встречу с монстром"""
+        player[0] = (player[0] + dx) % gridsize
+        player[1] = (player[1] + dy) % gridsize
 
-
-def encounter(x, y):
-    name, hello, hp = field[x][y]
-    if name == "jgsbat":
-        print(cowsay.cowsay(hello, cowfile=jgsbat_cow))
-    else:
-        print(cowsay.cowsay(hello, cow=name))
-
-
-gridsize = 10
-field = [["" for _ in range(gridsize)] for _ in range(gridsize)]
-player = [0, 0]
-
-
-while command := input(">> "):
-    comm = shlex.split(command)
-    stay = False
-    match comm:
-        case ["up"]:
-            player[1] += 1
-            player[1] %= gridsize
+        if field[player[1]][player[0]]:
+            print("Moved to ...")
+            self.encounter(player[1], player[0])
+        else:
             print(f"Moved to ({player[0]}, {player[1]})")
-        case ["right"]:
-            player[0] += 1
-            player[0] %= gridsize
-            print(f"Moved to ({player[0]}, {player[1]})")
-        case ["down"]:
-            player[1] -= 1
-            player[1] %= gridsize
-            print(f"Moved to ({player[0]}, {player[1]})")
-        case ["left"]:
-            player[0] -= 1
-            player[0] %= gridsize
-            print(f"Moved to ({player[0]}, {player[1]})")
-        case ["addmon", name, *args]:
 
-            try:
-                parsed = {}
-                i = 0
-                while i < len(args):
-                    key = args[i]
-                    if key == "coords":
-                        parsed[key] = (int(args[i + 1]), int(args[i + 2]))
-                        i += 3
-                    else:
-                        parsed[key] = args[i + 1]
-                        i += 2
-            except (IndexError, ValueError):
-                print("Invalid command")
-                continue
+    def do_up(self, arg):
+        """Move up"""
+        self.move_player(0, 1)
 
-            if not all(k in parsed for k in ("coords", "hp", "hello")):
-                print("Missing required parameters")
-                continue
+    def do_right(self, arg):
+        """Move right"""
+        self.move_player(1, 0)
 
-            x, y = parsed["coords"]
-            hp = int(parsed["hp"])
-            hello = parsed["hello"]
+    def do_down(self, arg):
+        """Move down"""
+        self.move_player(0, -1)
 
-            if name not in cowsay.list_cows():
-                print("Unknown monster name")
-                continue
+    def do_left(self, arg):
+        """Move left"""
+        self.move_player(-1, 0)
 
-            if field[y][x]:
-                print("Replaced the old monster")
-
-            field[y][x] = name, hello, hp
-            print(f"Added {name} at ({x},{y}) saying {hello}, HP: {hp}")
-
-            stay = True
-        case _:
+    def do_addmon(self, arg):
+        """Add monster"""
+        args = shlex.split(arg)
+        print(args)
+        if len(args) < 5:
             print("Invalid command")
-            stay = True
-    if stay:
-        continue
-    if field[player[1]][player[0]]:
-        print("Moved to ...")
-        encounter(player[1], player[0])
-    pass
+            return
+
+        name, x, y, hp, hello = (
+            args[0],
+            int(args[1]),
+            int(args[2]),
+            int(args[3]),
+            args[4],
+        )
+
+        if name != "jgsbat" and name not in cowsay.list_cows():
+            print("Unknown monster name")
+            return
+
+        if field[y][x]:
+            print("Replaced the old monster")
+
+        field[y][x] = (name, hello, hp)
+        print(f"Added {name} at ({x},{y}) saying {hello}, HP: {hp}")
+
+
+if __name__ == "__main__":
+    jgsbat = r"""
+        ,_                    _,
+        ) '-._  ,_    _,  _.-' (
+        )  _.-'.|\\--//|.'-._  (
+         )'   .'\/o\/o\/'.   `(
+          ) .' . \====/ . '. (
+           )  / <<    >> \  (
+            '-._/``  ``\_.-'
+      jgs     __\\'--'//__
+             (((""`  `"")))
+    """
+
+    jgsbat_cow = cowsay.read_dot_cow(StringIO(jgsbat))
+
+    gridsize = 10
+    field = [["" for _ in range(gridsize)] for _ in range(gridsize)]
+    player = [0, 0]
+
+    print("<<< Welcome to Python-MUD 0.1 >>>")
+    MudGame().cmdloop()
