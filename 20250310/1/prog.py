@@ -1,7 +1,13 @@
 import cmd
+import readline
 import cowsay
 import shlex
 from io import StringIO
+
+if "libedit" in readline.__doc__:
+    readline.parse_and_bind("bind ^I rl_complete")
+else:
+    readline.parse_and_bind("tab: complete")
 
 
 class MudGame(cmd.Cmd):
@@ -27,23 +33,23 @@ class MudGame(cmd.Cmd):
             print(f"Moved to ({player[0]}, {player[1]})")
 
     def do_up(self, arg):
-        """Move up"""
         self.move_player(0, 1)
 
     def do_right(self, arg):
-        """Move right"""
         self.move_player(1, 0)
 
     def do_down(self, arg):
-        """Move down"""
         self.move_player(0, -1)
 
     def do_left(self, arg):
-        """Move left"""
         self.move_player(-1, 0)
 
+    def do_EOF(self, arg):
+        """Конец игры"""
+        return 1
+
     def do_addmon(self, arg):
-        """Add monster"""
+        """Добавление монстра"""
         args = shlex.split(arg)
         if len(args) < 5:
             print("Invalid command")
@@ -68,16 +74,30 @@ class MudGame(cmd.Cmd):
         print(f"Added {name} at ({x},{y}) saying {hello}, HP: {hp}")
 
     def do_attack(self, arg):
-        """Attack the monster in the same position"""
+        """Атаковать монстра оружием"""
+        args = shlex.split(arg)
+
+        if len(args) == 0:
+            weapon = "sword"
+        elif len(args) == 2 and args[0] == "with":
+            weapon = args[1]
+        else:
+            print("Invalid attack command")
+            return
+
+        if weapon not in weapon_damage:
+            print("Unknown weapon")
+            return
+
         x, y = player
         if not field[y][x]:
             print("No monster here")
             return
 
         name, hello, hp = field[y][x]
-        damage = min(10, hp)
+        damage = min(weapon_damage[weapon], hp)
         hp -= damage
-        print(f"Attacked {name}, damage {damage} hp")
+        print(f"Attacked {name} with {weapon}, damage {damage} hp")
 
         if hp <= 0:
             print(f"{name} died")
@@ -85,6 +105,10 @@ class MudGame(cmd.Cmd):
         else:
             field[y][x] = (name, hello, hp)
             print(f"{name} now has {hp} hp")
+
+    def complete_attack(self, text, line, begidx, endidx):
+        """Автодополнение имен доступного в игре оружия"""
+        return [w for w in weapon_damage.keys() if w.startswith(text)]
 
 
 if __name__ == "__main__":
@@ -105,6 +129,7 @@ if __name__ == "__main__":
     gridsize = 10
     field = [["" for _ in range(gridsize)] for _ in range(gridsize)]
     player = [0, 0]
+    weapon_damage = {"sword": 10, "spear": 15, "axe": 20}
 
     print("<<< Welcome to Python-MUD 0.1 >>>")
     MudGame().cmdloop()
