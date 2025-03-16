@@ -45,7 +45,6 @@ class MudGame(cmd.Cmd):
     def do_addmon(self, arg):
         """Add monster"""
         args = shlex.split(arg)
-        print(args)
         if len(args) < 5:
             print("Invalid command")
             return
@@ -67,6 +66,25 @@ class MudGame(cmd.Cmd):
 
         field[y][x] = (name, hello, hp)
         print(f"Added {name} at ({x},{y}) saying {hello}, HP: {hp}")
+
+    def do_attack(self, arg):
+        """Attack the monster in the same position"""
+        x, y = player
+        if not field[y][x]:
+            print("No monster here")
+            return
+
+        name, hello, hp = field[y][x]
+        damage = min(10, hp)
+        hp -= damage
+        print(f"Attacked {name}, damage {damage} hp")
+
+        if hp <= 0:
+            print(f"{name} died")
+            field[y][x] = ""
+        else:
+            field[y][x] = (name, hello, hp)
+            print(f"{name} now has {hp} hp")
 
 
 if __name__ == "__main__":
