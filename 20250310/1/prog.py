@@ -1,3 +1,4 @@
+import cmd
 import cowsay
 import shlex
 from io import StringIO
