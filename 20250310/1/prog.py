@@ -8,7 +8,7 @@ class MudGame(cmd.Cmd):
     prompt = ">> "
 
     def encounter(self, x, y):
-        """Обработка встречи с монстром"""
+        """обработка встречи с монстром"""
         name, hello, hp = field[x][y]
         if name == "jgsbat":
             print(cowsay.cowsay(hello, cowfile=jgsbat_cow))
@@ -16,37 +16,37 @@ class MudGame(cmd.Cmd):
             print(cowsay.cowsay(hello, cow=name))
 
     def move_player(self, dx, dy):
-        """Перемещение игрока и проверка на встречу с монстром"""
+        """перемещение игрока и проверка на встречу с монстром"""
         player[0] = (player[0] + dx) % gridsize
         player[1] = (player[1] + dy) % gridsize
 
         if field[player[1]][player[0]]:
-            print("Moved to ...")
+            print("moved to ...")
             self.encounter(player[1], player[0])
         else:
-            print(f"Moved to ({player[0]}, {player[1]})")
+            print(f"moved to ({player[0]}, {player[1]})")
 
     def do_up(self, arg):
-        """Move up"""
+        """move up"""
         self.move_player(0, 1)
 
     def do_right(self, arg):
-        """Move right"""
+        """move right"""
         self.move_player(1, 0)
 
     def do_down(self, arg):
-        """Move down"""
+        """move down"""
         self.move_player(0, -1)
 
     def do_left(self, arg):
-        """Move left"""
+        """move left"""
         self.move_player(-1, 0)
 
     def do_addmon(self, arg):
-        """Add monster"""
+        """add monster"""
         args = shlex.split(arg)
         if len(args) < 5:
-            print("Invalid command")
+            print("invalid command")
             return
 
         name, x, y, hp, hello = (
@@ -58,26 +58,32 @@ class MudGame(cmd.Cmd):
         )
 
         if name != "jgsbat" and name not in cowsay.list_cows():
-            print("Unknown monster name")
+            print("unknown monster name")
             return
 
         if field[y][x]:
-            print("Replaced the old monster")
+            print("replaced the old monster")
 
         field[y][x] = (name, hello, hp)
-        print(f"Added {name} at ({x},{y}) saying {hello}, HP: {hp}")
+        print(f"added {name} at ({x},{y}) saying {hello}, HP: {hp}")
 
     def do_attack(self, arg):
-        """Attack the monster in the same position"""
+        """атака монстра по имени"""
+        args = shlex.split(arg)
+        if len(args) != 1:
+            print("invalid attack command")
+            return
+
+        monster_name = args[0]
         x, y = player
-        if not field[y][x]:
-            print("No monster here")
+        if not field[y][x] or field[y][x][0] != monster_name:
+            print(f"no {monster_name} here")
             return
 
         name, hello, hp = field[y][x]
         damage = min(10, hp)
         hp -= damage
-        print(f"Attacked {name}, damage {damage} hp")
+        print(f"attacked {name}, damage {damage} hp")
 
         if hp <= 0:
             print(f"{name} died")
@@ -85,6 +91,21 @@ class MudGame(cmd.Cmd):
         else:
             field[y][x] = (name, hello, hp)
             print(f"{name} now has {hp} hp")
+
+    def complete_attack(self, text, line, begidx, endidx):
+        """Автодополнение имен монстров с циклическим пролистыванием"""
+        tokens = line.split()
+        cows = ["jgsbat"] + cowsay.list_cows()
+
+        if len(tokens) <= 1 or text == "":
+            return cows
+
+        if text in cows:
+            idx = cows.index(text)
+            next_idx = (idx + 1) % len(cows)
+            return [cows[next_idx]]
+
+        return [name for name in cows if name.startswith(text)]
 
 
 if __name__ == "__main__":
