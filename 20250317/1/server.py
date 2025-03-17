@@ -40,6 +40,28 @@ class MUDServer:
                 data = f"{added}"
                 print(f"Received: {data}")
                 writer.write(bytes(data.encode()))
+                
+            elif data.startswith("attack "):
+                data = data.split()
+                name, damage = data[1], int(data[2])
+                if not self.field[self.position[1]][self.position[0]]:
+                    data = 'nothing'
+                else:
+                    hp, monster, message = self.field[self.position[1]][self.position[0]]
+                    hp, damage = int(hp), int(damage)
+                    if name == monster:
+                        new_hp = max(hp - damage, 0)
+                        data = f"{min(damage, hp)} {new_hp}"
+                        position = self.position
+                        if new_hp:
+                            self.field[position[1]][position[0]] = new_hp, monster, message
+                        else:
+                            self.field[position[1]][position[0]] = 0
+                    else:
+                        data = 'nothing'
+                print(f"Received: {data}")
+                writer.write(bytes(data.encode()))
+            
             else:
                 print("Unknown command", data)
         print("Player disconnected")

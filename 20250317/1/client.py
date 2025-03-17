@@ -177,6 +177,47 @@ class MUDClient(cmd.Cmd):
         ans = soc.recv(1024).rstrip().decode()
         if int(ans):
             print("Replaced the old monster")
+        
+        
+    def do_attack(self, arg):
+        """
+        Атака монстра. Синтаксис команды:
+            attack <имя монстра> with <имя оружия>
+        """
+        arg = arg.split()
+        if len(arg) < 1 or len(arg) == 2:
+            print("Invalid arguments")
+            return
+        name = arg[0]
+        if len(arg) > 1 and arg[1] != 'with':
+            print("Invalid arguments")
+            return
+        if len(arg) == 1:
+            ww = 'sword'
+            damage = 10
+        else:
+            weapons = ['sword', 'spear', 'axe']
+            if arg[2] in weapons:
+                ww = arg[2]
+            else:
+                print("Unknown weapon")
+                return
+        if ww == 'spear':
+            damage = 15
+        elif ww == 'axe':
+            damage = 20
+        message = f"attack {name} {damage}\n"
+        soc.sendall(bytes(message.encode()))
+        ans = soc.recv(1024).rstrip().decode()
+        if ans == 'nothing':
+            print(f"No", name, "here")
+        else:
+            damage, new_hp = map(int, ans.split())
+            print(f"Attacked {name}, damage {damage} hp")
+            if new_hp:
+                print(name,"now has", new_hp)
+            else:
+                print(name, "died")
 
 
 if __name__ == "__main__":
