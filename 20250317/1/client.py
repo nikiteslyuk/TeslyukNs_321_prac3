@@ -125,6 +125,58 @@ class MUDClient(cmd.Cmd):
         soc.sendall(bytes(message.encode()))
         ans = soc.recv(1024).rstrip().decode()
         return [int(i) for i in ans.split()]
+        
+    def do_addmon(self, arg):
+        """
+        Добавление монстра. Синтаксис команды:
+            addmon <monster_name> hello <hello_string> hp <hitpoints> coords <x> <y>
+        """
+        if len(arg.split()) < 2:
+            print("Invalid arguments")
+            return
+
+        name, *parsed = shlex.split(arg)
+        if len(parsed) != 7:
+            print("Invalid arguments")
+            return
+
+        i = parsed.index("hello") if "hello" in parsed else -1
+        if i == -1 or not (0 <= i < 6):
+            print("Invalid arguments")
+            return
+        hello = parsed[i + 1]
+        parsed[i + 1] = "-"
+
+        i = parsed.index("hp") if "hp" in parsed else -1
+        if i == -1 or not (0 <= i < 6):
+            print("Invalid arguments")
+            return
+        hp = parsed[i + 1]
+        if not hp.isdigit() or int(hp) <= 0:
+            print("Invalid arguments")
+            return
+        hp = int(hp)
+
+        i = parsed.index("coords") if "coords" in parsed else -1
+        if i == -1 or not (0 <= i < 5):
+            print("Invalid arguments")
+            return
+        x, y = parsed[i + 1], parsed[i + 2]
+        if not (x.isdigit() and y.isdigit()):
+            print("Invalid arguments")
+            return
+        x, y = int(x), int(y)
+
+        if name not in cowsay.list_cows() + ["jgsbat"]:
+            print("Invalid arguments")
+            return
+
+        print(f"Added monster {name} to ({x}, {y}) saying {hello}")
+        message = f"add {name} {hp} {y} {x} {hello}\n"
+        soc.sendall(bytes(message.encode()))
+        ans = soc.recv(1024).rstrip().decode()
+        if int(ans):
+            print("Replaced the old monster")
 
 
 if __name__ == "__main__":

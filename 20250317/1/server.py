@@ -18,7 +18,7 @@ class MUDServer:
             if data.startswith("move "):
                 data = data.split()
                 x, y = map(int, [data[1], data[2]])
-                self.player_position = x, y
+                self.position = x, y
                 if self.field[y][x]:
                     hp, name, message = self.field[y][x]
                     data = f"{name} {message}"
@@ -28,6 +28,16 @@ class MUDServer:
                 writer.write(bytes(data.encode()))
             elif data == "position":
                 data = f"{self.position[0]} {self.position[1]}"
+                print(f"Received: {data}")
+                writer.write(bytes(data.encode()))
+            elif data.startswith("add "):
+                add, name, hp, y, x, *message = data.split()
+                added = 0
+                y, x, hp = map(int, [y, x, hp])
+                if self.field[y][x]:
+                    added = 1
+                self.field[y][x] = hp, name, " ".join(message)
+                data = f"{added}"
                 print(f"Received: {data}")
                 writer.write(bytes(data.encode()))
             else:
