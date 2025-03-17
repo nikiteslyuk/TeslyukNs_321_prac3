@@ -40,8 +40,8 @@ class MUDClient(cmd.Cmd):
         ans = soc.recv(1024).rstrip().decode()
         if ans != "nothing":
             print(f"Moved to ...")
-            ans = ans.split()
-            self.encounter(ans[0], ans[1], position[1], position[0])
+            ans, *tail = ans.split()
+            self.encounter(ans, ' '.join(tail), position[1], position[0])
 
     def do_down(self, arg):
         """Ход вниз"""
@@ -53,8 +53,8 @@ class MUDClient(cmd.Cmd):
         ans = soc.recv(1024).rstrip().decode()
         if ans != "nothing":
             print(f"Moved to ...")
-            ans = ans.split()
-            self.encounter(ans[0], ans[1], position[1], position[0])
+            ans, *tail = ans.split()
+            self.encounter(ans, ' '.join(tail), position[1], position[0])
 
     def do_left(self, arg):
         """Ход налево"""
@@ -66,8 +66,8 @@ class MUDClient(cmd.Cmd):
         ans = soc.recv(1024).rstrip().decode()
         if ans != "nothing":
             print(f"Moved to ...")
-            ans = ans.split()
-            self.encounter(ans[0], ans[1], position[1], position[0])
+            ans, *tail = ans.split()
+            self.encounter(ans, ' '.join(tail), position[1], position[0])
 
     def do_right(self, arg):
         """Ход направо"""
@@ -79,8 +79,8 @@ class MUDClient(cmd.Cmd):
         ans = soc.recv(1024).rstrip().decode()
         if ans != "nothing":
             print(f"Moved to ...")
-            ans = ans.split()
-            self.encounter(ans[0], ans[1], position[1], position[0])
+            ans, *tail = ans.split()
+            self.encounter(ans, ' '.join(tail), position[1], position[0])
 
     def do_EOF(self, arg):
         """Выход из игры"""
@@ -202,7 +202,9 @@ class MUDClient(cmd.Cmd):
             else:
                 print("Unknown weapon")
                 return
-        if ww == 'spear':
+        if ww == 'sword':
+            damage = 10
+        elif ww == 'spear':
             damage = 15
         elif ww == 'axe':
             damage = 20
