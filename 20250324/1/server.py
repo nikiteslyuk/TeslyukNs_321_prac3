@@ -1,73 +1,190 @@
 import asyncio
+import cowsay
+import shlex
+from io import StringIO
 
 
 class MUDServer:
-    field = [[None for _ in range(10)] for _ in range(10)]
+    clients = {}
+    names = set()
+    field = [[0 for _ in range(10)] for _ in range(10)]
     position = [0, 0]
 
-    async def process(self):
-        server = await asyncio.start_server(self.handle_connection, "0.0.0.0", 1337)
-        async with server:
-            await server.serve_forever()
+    def encounter(self, y, x):
+        jgsbat_paint = r"""
+            ,_                    _,
+            ) '-._  ,_    _,  _.-' (
+            )  _.-'.|\\--//|.'-._  (
+             )'   .'\/o\/o\/'.   `(
+              ) .' . \====/ . '. (
+               )  / <<    >> \  (
+                '-._/``  ``\_.-'
+          jgs     __\\'--'//__
+                 (((""`  `"")))
+        """
+        jgsbat = cowsay.read_dot_cow(StringIO(jgsbat_paint))
+        hp, name, message = self.field[y][x]
+        if name == "jgsbat":
+            return cowsay.cowsay(message, cowfile=jgsbat)
+        else:
+            return cowsay.cowsay(message, cow=name)
 
-    async def handle_connection(self, reader, writer):
-        print("New player connected")
-        while data := await reader.readline():
-            data = data.decode()[:-1]
-            print(f"Received: {data}")
-            if data.startswith("move "):
-                data = data.split()
-                x, y = map(int, [data[1], data[2]])
-                self.position = x, y
-                if self.field[y][x]:
-                    hp, name, message = self.field[y][x]
-                    data = f"{name} {message}"
-                else:
-                    data = "nothing"
-                print(f"Received: {data}")
-                writer.write(bytes(data.encode()))
-            elif data == "position":
-                data = f"{self.position[0]} {self.position[1]}"
-                print(f"Received: {data}")
-                writer.write(bytes(data.encode()))
-            elif data.startswith("add "):
-                add, name, hp, y, x, *message = data.split()
-                added = 0
-                y, x, hp = map(int, [y, x, hp])
-                if self.field[y][x]:
-                    added = 1
-                self.field[y][x] = hp, name, " ".join(message)
-                data = f"{added}"
-                print(f"Received: {data}")
-                writer.write(bytes(data.encode()))
-                
-            elif data.startswith("attack "):
-                data = data.split()
-                name, damage = data[1], int(data[2])
-                if not self.field[self.position[1]][self.position[0]]:
-                    data = 'nothing'
-                else:
-                    hp, monster, message = self.field[self.position[1]][self.position[0]]
-                    hp, damage = int(hp), int(damage)
-                    if name == monster:
-                        new_hp = max(hp - damage, 0)
-                        data = f"{min(damage, hp)} {new_hp}"
-                        position = self.position
-                        if new_hp:
-                            self.field[position[1]][position[0]] = new_hp, monster, message
+    async def server(self, reader, writer):
+        me = None
+        queue = asyncio.Queue()
+        send_task = asyncio.create_task(reader.readline())
+        recv_task = asyncio.create_task(queue.get())
+
+        while not reader.at_eof():
+            done, _ = await asyncio.wait(
+                [send_task, recv_task], return_when=asyncio.FIRST_COMPLETED
+            )
+
+            for task in done:
+                if task is send_task:
+                    send_task = asyncio.create_task(reader.readline())
+                    message = task.result().decode().strip()
+                    print(f"Received: {message}")
+                    if not message:
+                        continue
+
+                    # Registration
+                    if not me:
+                        if message in self.names:
+                            ans = "Пользователь уже зарегистрирован"
+                            print(f"Sended: {ans}")
+                            writer.write(ans.encode())
+                            break
+                        me = message
+                        self.clients[me] = queue
+                        self.names.add(me)
+                        ans = f"Добро пожаловать, {me}!"
+                        print(f"Sended: {ans}")
+                        writer.write(ans.encode())
+                        await writer.drain()
+                        for out in self.clients.values():
+                            if out != me:
+                                notice = f"{me} покдлючился"
+                                print(f"Multisended: {notice}")
+                                await out.put(notice)
+
+                    # Move
+                    elif message.startswith("move "):
+                        _, x_str, y_str = shlex.split(message)
+                        y, x = int(y_str), int(x_str)
+                        self.position = [
+                            (self.position[0] + x) % 10,
+                            (self.position[1] + y) % 10,
+                        ]
+                        px, py = self.position
+                        ans = f"Moved to {px} {py}"
+                        if self.field[py][px]:
+                            ans += "\nMoved to ...\n" + self.encounter(py, px)
+                        print(f"Sended: {ans}")
+                        writer.write(ans.encode())
+                        await writer.drain()
+                    elif message.startswith("addmon "):
+                        _, name, hp_str, y_str, x_str, hello = shlex.split(message)
+                        y, x = int(y_str), int(x_str)
+                        ans = f"Added monster {name} to ({x}, {y}) saying {hello}"
+                        if self.field[y][x]:
+                            ans += "\nReplaced the old monster"
+                        self.field[y][x] = [int(hp_str), name, hello]
+                        print(f"Sended: {ans}")
+                        writer.write(ans.encode())
+                        await writer.drain()
+                        broadcast = (
+                            f"Monster {name} was added by player {me} at ({x},{y}) "
+                            f"saying '{hello}'"
+                        )
+                        for out in self.clients.values():
+                            if out != me:
+                                print(f"Multisended: {broadcast}")
+                                await out.put(broadcast)
+                    elif message.startswith("attack "):
+                        _, target_name, damage_str, weapon = shlex.split(message)
+                        damage = int(damage_str)
+                        px, py = self.position
+                        cell = self.field[py][px]
+                        if not cell or cell[1] != target_name:
+                            ans = f"No {target_name} here"
+                            print(f"Sended: {ans}")
+                            writer.write(ans.encode())
+                            await writer.drain()
                         else:
-                            self.field[position[1]][position[0]] = 0
+                            hp_old = cell[0]
+                            hp_new = max(hp_old - damage, 0)
+                            cell[0] = hp_new
+
+                            if hp_new > 0:
+                                ans = f"Attacked {target_name} with {weapon}, now has {hp_new} hp"
+                                broadcast = (
+                                    f"Monster {target_name} was attacked by player {me} "
+                                    f"using {weapon} and has {hp_new} hp"
+                                )
+                            else:
+                                ans = f"Attacked {target_name} with {weapon}, {target_name} died"
+                                self.field[py][px] = 0
+                                broadcast = (
+                                    f"Monster {target_name} was killed by player {me} "
+                                    f"using {weapon}"
+                                )
+                            print(f"Sended: {ans}")
+                            writer.write(ans.encode())
+                            await writer.drain()
+                            for out in self.clients.values():
+                                if out != me:
+                                    print(f"Multisended: {broadcast}")
+                                    await out.put(broadcast)
+                    elif message == "quit":
+                        ans = "До новых встреч!"
+                        print(f"Sended: {ans}")
+                        writer.write(ans.encode())
+                        await writer.drain()
+                        leave_notice = f"Пользователь {me} отключился"
+                        for out in self.clients.values():
+                            if out != me:
+                                print(f"Multisended: {leave_notice}")
+                                await out.put(leave_notice)
+                        del self.clients[me]
+                        self.names.remove(me)
+                        me = None
+                    elif message == "help":
+                        ans = (
+                            "Команды:\n"
+                            "up/down/left/right — движение по фиелду\n"
+                            "attack — атаковать монстра\n"
+                            "addmon — добавить монстра\n"
+                            "quit — выйти из игры"
+                        )
+                        print(f"Sended: {ans}")
+                        writer.write(ans.encode())
+                        await writer.drain()
                     else:
-                        data = 'nothing'
-                print(f"Received: {data}")
-                writer.write(bytes(data.encode()))
-            
-            else:
-                print("Unknown command", data)
-        print("Player disconnected")
+                        ans = "Неизвестная команда. Введите 'help'."
+                        print(f"Sended: {ans}")
+                        writer.write(ans.encode())
+                        await writer.drain()
+                elif task is recv_task:
+                    recv_task = asyncio.create_task(queue.get())
+                    notice = task.result()
+                    writer.write(f"{notice}\n".encode())
+                    await writer.drain()
+        send_task.cancel()
+        recv_task.cancel()
+        if me:
+            del self.clients[me]
+            self.names.remove(me)
         writer.close()
         await writer.wait_closed()
 
 
+async def process():
+    m = MUDServer()
+    server = await asyncio.start_server(m.server, "0.0.0.0", 1337)
+    async with server:
+        await server.serve_forever()
+
+
 if __name__ == "__main__":
-    asyncio.run(MUDServer().process())
+    asyncio.run(process())
