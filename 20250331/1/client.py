@@ -127,6 +127,11 @@ class MUDclient(cmd.Cmd):
         if len(words) == 4 and "with" in words:
             return [w for w in weapons if w.startswith(text)]
         return []
+        
+    def do_sayall(self, arg):
+        '''Чат между игроками'''
+        message = f"sayall {arg}\n"
+        soc.sendall(bytes(message.encode()))
 
 
 def spam(cmdline, timeout):

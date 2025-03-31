@@ -47,8 +47,6 @@ class MUDServer:
                     print(f"Received: {message}")
                     if not message:
                         continue
-
-                    # Registration
                     if not me:
                         if message in self.names:
                             ans = "Пользователь уже зарегистрирован"
@@ -67,8 +65,6 @@ class MUDServer:
                                 notice = f"{me} покдлючился"
                                 print(f"Multisended: {notice}")
                                 await out.put(notice)
-
-                    # Move
                     elif message.startswith("move "):
                         _, x_str, y_str = shlex.split(message)
                         y, x = int(y_str), int(x_str)
@@ -136,6 +132,12 @@ class MUDServer:
                                 if out != me:
                                     print(f"Multisended: {broadcast}")
                                     await out.put(broadcast)
+                    elif message.startswith("sayall "):
+                        sayall, *msg = shlex.split(message)
+                        ans = f"{me}: {msg[0]}"
+                        for out in self.clients.values():
+                            print('Multisended: ', ans)
+                            await out.put(ans)
                     elif message == "quit":
                         ans = "До новых встреч!"
                         print(f"Sended: {ans}")
