@@ -1,8 +1,9 @@
+# mood/client/__main__.py
+"""MUD client entrypoint: запускает клиента."""
+
 import cmd
-import readline
 import cowsay
 import shlex
-from io import StringIO
 import sys
 import socket
 import threading
@@ -10,27 +11,33 @@ import time
 
 
 class MUDclient(cmd.Cmd):
+    """Реализация клиента."""
+
     prompt = ">> "
     running = True
 
     def do_up(self, arg):
-        """Ход вверх"""
+        """Ход вверх."""
         soc.sendall(b"move 0 1\n")
 
     def do_down(self, arg):
-        """Ход вниз"""
+        """Ход вниз."""
         soc.sendall(b"move 0 -1\n")
 
     def do_left(self, arg):
-        """Ход влево"""
+        """Ход влево."""
         soc.sendall(b"move -1 0\n")
 
     def do_right(self, arg):
-        """Ход вправо"""
+        """Ход вправо."""
         soc.sendall(b"move 1 0\n")
 
     def do_addmon(self, arg):
-        """addmon <monster_name> hello <hello_string> hp <hitpoints> coords <x> <y>"""
+        """
+        Addmon <monster_name> hello <hello_string>.
+
+        hp <hitpoints> coords <x> <y>.
+        """
         tokens = shlex.split(arg)
         if len(tokens) != 8:
             print("Invalid arguments")
@@ -61,7 +68,7 @@ class MUDclient(cmd.Cmd):
         soc.sendall(message.encode())
 
     def do_attack(self, arg):
-        """attack <имя монстра> with <имя оружия>"""
+        """Attack <имя монстра> with <имя оружия>."""
         parts = arg.split()
         if len(parts) < 1 or len(parts) == 2:
             print("Invalid arguments")
@@ -83,22 +90,23 @@ class MUDclient(cmd.Cmd):
         soc.sendall(message.encode())
 
     def do_help(self, arg):
-        """Показать справку"""
+        """Показать справку."""
         soc.sendall(b"help\n")
 
     def do_quit(self, arg):
-        """Выход из игры"""
+        """Выход из игры."""
         soc.sendall(b"quit\n")
         self.running = False
         return True
 
     def do_EOF(self, arg):
-        """Выход из игры (Ctrl-D)"""
+        """Выход из игры (Ctrl-D)."""
         soc.sendall(b"quit\n")
         self.running = False
         return True
 
     def complete_addmon(self, text, line, begidx, endidx):
+        """Автодополнение для имени монстра."""
         words = (line[:endidx] + ".").split()
         d = []
         if len(words) > 2:
@@ -115,6 +123,7 @@ class MUDclient(cmd.Cmd):
         return [c for c in d if c.startswith(text)]
 
     def complete_attack(self, text, line, begidx, endidx):
+        """Автодополнение для атаки."""
         words = (line[:endidx] + ".").split()
         cows = ["jgsbat"] + cowsay.list_cows()
         weapons = ["sword", "spear", "axe"]
@@ -127,14 +136,15 @@ class MUDclient(cmd.Cmd):
         if len(words) == 4 and "with" in words:
             return [w for w in weapons if w.startswith(text)]
         return []
-        
+
     def do_sayall(self, arg):
-        '''Чат между игроками'''
+        """Чат между игроками."""
         message = f"sayall {arg}\n"
         soc.sendall(bytes(message.encode()))
 
 
 def spam(cmdline, timeout):
+    """Связь с сервером."""
     while cmdline.running:
         try:
             data = soc.recv(1024)
@@ -156,7 +166,8 @@ if __name__ == "__main__":
     host = "localhost"
     port = 1337
     if len(sys.argv) < 2:
-        print("Usage: python3 client.py <nickname>\nУкажите никнейм")
+        print("Usage: python3 client.py",
+              "<nickname>\nУкажите никнейм")
     else:
         soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         soc.connect((host, port))
@@ -165,7 +176,8 @@ if __name__ == "__main__":
         print(data.decode().rstrip())
         if data.decode().rstrip() != "Пользователь уже зарегистрирован":
             cmdline = MUDclient()
-            timer = threading.Thread(target=spam, args=(cmdline, 0.1), daemon=True)
+            timer = threading.Thread(target=spam,
+                                     args=(cmdline, 0.1), daemon=True)
             timer.start()
             cmdline.cmdloop()
         soc.close()

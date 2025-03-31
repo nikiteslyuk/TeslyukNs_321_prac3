@@ -1,3 +1,6 @@
+# mood/server/__main__.py
+"""MUD server entrypoint: запускает asyncio-сервер для обработки клиентов."""
+
 import asyncio
 import cowsay
 import shlex
@@ -5,12 +8,15 @@ from io import StringIO
 
 
 class MUDServer:
+    """MUD server."""
+
     clients = {}
     names = set()
     field = [[0 for _ in range(10)] for _ in range(10)]
     position = [0, 0]
 
     def encounter(self, y, x):
+        """Встреча с монстром."""
         jgsbat_paint = r"""
             ,_                    _,
             ) '-._  ,_    _,  _.-' (
@@ -30,6 +36,7 @@ class MUDServer:
             return cowsay.cowsay(message, cow=name)
 
     async def server(self, reader, writer):
+        """Асинхронный сервер."""
         me = None
         queue = asyncio.Queue()
         send_task = asyncio.create_task(reader.readline())
@@ -80,9 +87,14 @@ class MUDServer:
                         writer.write(ans.encode())
                         await writer.drain()
                     elif message.startswith("addmon "):
-                        _, name, hp_str, y_str, x_str, hello = shlex.split(message)
+                        _, name, hp_str, y_str, x_str, hello = (
+                            shlex.split(message)
+                        )
                         y, x = int(y_str), int(x_str)
-                        ans = f"Added monster {name} to ({x}, {y}) saying {hello}"
+                        ans = (
+                            f"Added monster {name} to ({x}, {y}) "
+                            f"saying {hello}"
+                        )
                         if self.field[y][x]:
                             ans += "\nReplaced the old monster"
                         self.field[y][x] = [int(hp_str), name, hello]
@@ -90,7 +102,8 @@ class MUDServer:
                         writer.write(ans.encode())
                         await writer.drain()
                         broadcast = (
-                            f"Monster {name} was added by player {me} at ({x},{y}) "
+                            f"Monster {name} was added by"
+                            f"player {me} at ({x},{y}) "
                             f"saying '{hello}'"
                         )
                         for out in self.clients.values():
@@ -98,7 +111,9 @@ class MUDServer:
                                 print(f"Multisended: {broadcast}")
                                 await out.put(broadcast)
                     elif message.startswith("attack "):
-                        _, target_name, damage_str, weapon = shlex.split(message)
+                        _, target_name, damage_str, weapon = (
+                            shlex.split(message)
+                        )
                         damage = int(damage_str)
                         px, py = self.position
                         cell = self.field[py][px]
@@ -113,16 +128,24 @@ class MUDServer:
                             cell[0] = hp_new
 
                             if hp_new > 0:
-                                ans = f"Attacked {target_name} with {weapon}, now has {hp_new} hp"
+                                ans = (
+                                    f"Attacked {target_name} with {weapon},"
+                                    f"now has {hp_new} hp"
+                                )
                                 broadcast = (
-                                    f"Monster {target_name} was attacked by player {me} "
+                                    f"Monster {target_name} was"
+                                    f"attacked by player {me} "
                                     f"using {weapon} and has {hp_new} hp"
                                 )
                             else:
-                                ans = f"Attacked {target_name} with {weapon}, {target_name} died"
+                                ans = (
+                                    f"Attacked {target_name} with {weapon},"
+                                    f"{target_name} died"
+                                )
                                 self.field[py][px] = 0
                                 broadcast = (
-                                    f"Monster {target_name} was killed by player {me} "
+                                    f"Monster {target_name} was killed"
+                                    f"by player {me} "
                                     f"using {weapon}"
                                 )
                             print(f"Sended: {ans}")
@@ -182,6 +205,7 @@ class MUDServer:
 
 
 async def process():
+    """Главный цикл сервера."""
     m = MUDServer()
     server = await asyncio.start_server(m.server, "0.0.0.0", 1337)
     async with server:
