@@ -1,19 +1,38 @@
 # mood/server/__main__.py
-"""MUD server entrypoint: запускает asyncio-сервер для обработки клиентов."""
+"""
+MUD Server module.
+
+Здесь описано:
+- запуск asyncio-сервера,
+- команды move/addmon/attack/sayall/quit,
+- бродячие монстры (_roam_monsters).
+"""
 
 import asyncio
 import cowsay
 import shlex
 from io import StringIO
+import random, asyncio
 
 
 class MUDServer:
-    """MUD server."""
+    """
+    Класс MUDServer — основной сервер.
 
-    clients = {}
-    names = set()
-    field = [[0 for _ in range(10)] for _ in range(10)]
-    position = [0, 0]
+    Attributes:
+        clients (Dict[str, asyncio.Queue]): очереди сообщений клиентов.
+        names (Set[str]): имена подключенных игроков.
+        positions (Dict[str, Tuple[int,int]]): их координаты.
+        field (List[List[Union[int,list]]]): игровое поле 10×10.
+    """
+
+
+    def __init__(self):
+        self.clients = {}
+        self.names = set()
+        self.positions = {}
+        self.field = [[0]*10 for _ in range(10)]
+        asyncio.create_task(self._roam_monsters())
 
     def encounter(self, y, x):
         """Встреча с монстром."""
@@ -34,6 +53,42 @@ class MUDServer:
             return cowsay.cowsay(message, cowfile=jgsbat)
         else:
             return cowsay.cowsay(message, cow=name)
+
+
+
+    async def _roam_monsters(self):
+        """Каждые 30 сек выбираем рандомного монстра и двигаем."""
+        dirs = {
+            "up":    (1, 0),
+            "down":  (-1,0),
+            "right":(0, 1),
+            "left": (0,-1),
+        }
+        while True:
+            await asyncio.sleep(30)
+            mons = [(y,x, self.field[y][x]) 
+                    for y in range(10) for x in range(10) 
+                    if self.field[y][x]]
+            if not mons:
+                continue
+            while True:
+                y, x, cell = random.choice(mons)
+                name = cell[1]
+                direction, (dy,dx) = random.choice(list(dirs.items()))
+                ny = (y+dy) % 10
+                nx = (x+dx) % 10
+                if self.field[ny][nx]:
+                    continue
+                self.field[ny][nx] = cell
+                self.field[y][x] = 0
+                break
+            msg = f"{name} moved one cell {direction}"
+            for q in self.clients.values():
+                await q.put(msg)
+            for player, pos in self.positions.items():
+                if pos == (ny,nx):
+                    text = self.encounter(ny, nx)
+                    await self.clients[player].put(text)
 
     async def server(self, reader, writer):
         """Асинхронный сервер."""
@@ -79,7 +134,7 @@ class MUDServer:
                             (self.position[0] + x) % 10,
                             (self.position[1] + y) % 10,
                         ]
-                        px, py = self.position
+                        self.positions[me] = (py,px)
                         ans = f"Moved to {px} {py}"
                         if self.field[py][px]:
                             ans += "\nMoved to ...\n" + self.encounter(py, px)
@@ -102,7 +157,7 @@ class MUDServer:
                         writer.write(ans.encode())
                         await writer.drain()
                         broadcast = (
-                            f"Monster {name} was added by"
+                            f"Monster {name} was added by "
                             f"player {me} at ({x},{y}) "
                             f"saying '{hello}'"
                         )

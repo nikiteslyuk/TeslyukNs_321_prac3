@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 python-cowsay = "*"
+sphinx = "*"
+sphinx-rtd-theme = "*"
 
 [dev-packages]
 
