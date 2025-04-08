@@ -8,6 +8,8 @@ import sys
 import socket
 import threading
 import time
+import argparse
+import re
 
 
 class MUDclient(cmd.Cmd):
@@ -95,13 +97,19 @@ class MUDclient(cmd.Cmd):
 
     def do_quit(self, arg):
         """Выход из игры."""
-        soc.sendall(b"quit\n")
+        try:
+            soc.sendall(b"quit\n")
+        except OSError:
+            pass
         self.running = False
         return True
 
     def do_EOF(self, arg):
         """Выход из игры (Ctrl-D)."""
-        soc.sendall(b"quit\n")
+        try:
+            soc.sendall(b"quit\n")
+        except OSError:
+            pass
         self.running = False
         return True
 
@@ -149,35 +157,61 @@ def spam(cmdline, timeout):
         try:
             data = soc.recv(1024)
             if not data:
-                print("\nDisconnected from server.")
                 break
             sys.stdout.write("\r\n")
             print(data.decode().rstrip())
             sys.stdout.write(cmdline.prompt)
             sys.stdout.flush()
-        except ConnectionResetError:
-            print("\nConnection closed by server.")
+        except (ConnectionResetError, OSError):
             break
         time.sleep(timeout)
     cmdline.running = False
 
 
+def run_script_mode(filename, cmdline):
+    """
+    Читает файл строка за строкой, убирает номера и вызывает cmdline.onecmd().
+    Между вызовами ждёт 1 сек, а при quit — выходит сразу.
+    """
+
+    with open(filename, encoding='utf-8') as f:
+        for line in f:
+            raw = line.strip()
+            if not raw or raw.startswith('#'):
+                continue
+            cmd = re.sub(r'^\s*\d+\s+', '', raw)
+            stop = cmdline.onecmd(cmd)
+            if stop:
+                return
+            time.sleep(2)
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="MUD client: interactive or script mode.")
+    parser.add_argument('nickname', help='Your player nickname')
+    parser.add_argument('--file', '-f', metavar='FILE', help='Script file with commands (.mood)')
+    args = parser.parse_args()
+
     host = "localhost"
     port = 1337
-    if len(sys.argv) < 2:
-        print("Usage: python3 client.py",
-              "<nickname>\nУкажите никнейм")
-    else:
-        soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        soc.connect((host, port))
-        soc.sendall(f"{sys.argv[1]}\n".encode())
-        data = soc.recv(4096)
-        print(data.decode().rstrip())
-        if data.decode().rstrip() != "Пользователь уже зарегистрирован":
-            cmdline = MUDclient()
-            timer = threading.Thread(target=spam,
-                                     args=(cmdline, 0.1), daemon=True)
-            timer.start()
-            cmdline.cmdloop()
+    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    soc.connect((host, port))
+    soc.sendall(f"{args.nickname}\n".encode())
+    greeting = soc.recv(4096).decode().rstrip()
+    print(greeting)
+    if greeting == "Пользователь уже зарегистрирован":
         soc.close()
+        sys.exit(1)
+
+    cmdline = MUDclient()
+    reader = threading.Thread(target=spam, args=(cmdline, 0.1), daemon=True)
+     
+    reader.start()
+
+    if args.file:
+        run_script_mode(args.file, cmdline)
+    else:
+        cmdline.cmdloop()
+
+    soc.close()
+

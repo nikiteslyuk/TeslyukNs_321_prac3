@@ -118,6 +118,7 @@ class MUDServer:
                         me = message
                         self.clients[me] = queue
                         self.names.add(me)
+                        self.positions[me] = (0, 0)
                         ans = f"Добро пожаловать, {me}!"
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
@@ -128,16 +129,15 @@ class MUDServer:
                                 print(f"Multisended: {notice}")
                                 await out.put(notice)
                     elif message.startswith("move "):
-                        _, x_str, y_str = shlex.split(message)
-                        y, x = int(y_str), int(x_str)
-                        self.position = [
-                            (self.position[0] + x) % 10,
-                            (self.position[1] + y) % 10,
-                        ]
-                        self.positions[me] = (py,px)
-                        ans = f"Moved to {px} {py}"
-                        if self.field[py][px]:
-                            ans += "\nMoved to ...\n" + self.encounter(py, px)
+                        _, dx_str, dy_str = shlex.split(message)
+                        dx, dy = int(dx_str), int(dy_str)
+                        old_x, old_y = self.positions.get(me, (0, 0))
+                        new_x = (old_x + dx) % 10
+                        new_y = (old_y + dy) % 10
+                        self.positions[me] = (new_x, new_y)
+                        ans = f"Moved to {new_x} {new_y}"
+                        if self.field[new_y][new_x]:
+                            ans += "\n" + self.encounter(new_y, new_x)
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
@@ -170,8 +170,8 @@ class MUDServer:
                             shlex.split(message)
                         )
                         damage = int(damage_str)
-                        px, py = self.position
-                        cell = self.field[py][px]
+                        x, y = self.positions.get(me, (0, 0))
+                        cell = self.field[y][x]
                         if not cell or cell[1] != target_name:
                             ans = f"No {target_name} here"
                             print(f"Sended: {ans}")
@@ -197,7 +197,7 @@ class MUDServer:
                                     f"Attacked {target_name} with {weapon},"
                                     f"{target_name} died"
                                 )
-                                self.field[py][px] = 0
+                                self.field[y][x] = 0
                                 broadcast = (
                                     f"Monster {target_name} was killed"
                                     f"by player {me} "
