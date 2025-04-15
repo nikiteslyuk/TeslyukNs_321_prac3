@@ -13,6 +13,16 @@ import cowsay
 import shlex
 from io import StringIO
 import random, asyncio
+import gettext
+import locale
+import os
+
+
+locales_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "locales")
+LOCALES = {
+    "en_US": gettext.translation("MOOD", locales_dir, ["en"], fallback=True),
+    "ru_RU": gettext.translation("MOOD", locales_dir, ["ru"], fallback=True),
+}
 
 
 class MUDServer:
@@ -28,12 +38,24 @@ class MUDServer:
 
 
     def __init__(self):
+        locale.setlocale(locale.LC_ALL, '')
+        self.client_locales = {}
         self.clients = {}
         self.names = set()
         self.positions = {}
         self.field = [[0]*10 for _ in range(10)]
         self.roaming_enabled = True
+        self.locales_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "locales")
+        self.LOCALES = LOCALES
         asyncio.create_task(self._roam_monsters())
+
+    def _(self, text, locale):
+        """Локализация."""
+        return self.LOCALES[locale].gettext(text)
+
+    def ngettext(self, text, ntext, n, locale):
+        """Локализация, множественное число."""
+        return self.LOCALES[locale].ngettext(text, ntext, n)
 
     def encounter(self, y, x):
         """Встреча с монстром."""
@@ -85,9 +107,11 @@ class MUDServer:
                 self.field[ny][nx] = cell
                 self.field[y][x] = 0
                 break
-            msg = f"{name} moved one cell {direction}"
-            for q in self.clients.values():
-                await q.put(msg)
+            for other, q in self.clients.items():
+                loc = self.client_locales.get(other, "en_US")
+                roaming_msg = self._("{} moved one cell {}", loc).format(name, direction)
+                print(f"Multisended: {roaming_msg}")
+                await q.put(roaming_msg)
             for player, pos in self.positions.items():
                 if pos == (ny,nx):
                     text = self.encounter(ny, nx)
@@ -114,23 +138,28 @@ class MUDServer:
                         continue
                     if not me:
                         if message in self.names:
-                            ans = "Пользователь уже зарегистрирован"
+                            loc = "en_US"
+                            ans = self._("User already registered", loc)
                             print(f"Sended: {ans}")
                             writer.write(ans.encode())
                             break
                         me = message
+                        self.client_locales[me] = "en_US"
                         self.clients[me] = queue
                         self.names.add(me)
                         self.positions[me] = (0, 0)
-                        ans = f"Добро пожаловать, {me}!"
+                        loc = self.client_locales[me]
+                        ans = self._("Welcome, {}!", loc).format(me)
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
-                        for out in self.clients.values():
-                            if out != me:
-                                notice = f"{me} покдлючился"
-                                print(f"Multisended: {notice}")
-                                await out.put(notice)
+                        for other, q in self.clients.items():
+                            if other == me:
+                                continue
+                            loc = self.client_locales[other]
+                            notice = self._("{} has connected", loc).format(me)
+                            print(f"Multisended: {notice}")
+                            await q.put(notice)
                     elif message.startswith("move "):
                         _, dx_str, dy_str = shlex.split(message)
                         dx, dy = int(dx_str), int(dy_str)
@@ -138,7 +167,8 @@ class MUDServer:
                         new_x = (old_x + dx) % 10
                         new_y = (old_y + dy) % 10
                         self.positions[me] = (new_x, new_y)
-                        ans = f"Moved to {new_x} {new_y}"
+                        loc = self.client_locales[me]
+                        ans = self._("Moved to {} {}", loc).format(new_x, new_y)
                         if self.field[new_y][new_x]:
                             ans += "\n" + self.encounter(new_y, new_x)
                         print(f"Sended: {ans}")
@@ -149,25 +179,28 @@ class MUDServer:
                             shlex.split(message)
                         )
                         y, x = int(y_str), int(x_str)
-                        ans = (
-                            f"Added monster {name} to ({x}, {y}) "
-                            f"saying {hello}"
-                        )
+                        loc = self.client_locales[me]
+                        ans = self._(
+                            "Added monster {} to ({}, {}) saying {}. ",
+                            loc,
+                        ).format(name, x, y, hello)
                         if self.field[y][x]:
-                            ans += "\nReplaced the old monster"
+                            loc = self.client_locales[me]
+                            ans += self._("Replaced the old monster", loc)
                         self.field[y][x] = [int(hp_str), name, hello]
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
-                        broadcast = (
-                            f"Monster {name} was added by "
-                            f"player {me} at ({x},{y}) "
-                            f"saying '{hello}'"
-                        )
-                        for out in self.clients.values():
-                            if out != me:
-                                print(f"Multisended: {broadcast}")
-                                await out.put(broadcast)
+                        for other, q in self.clients.items():
+                            if other == me:
+                                continue
+                            loc = self.client_locales[other]
+                            msg = self._(
+                                "Monster {} was added by player {} at ({},{}) saying '{}'",
+                                loc
+                            ).format(name, me, x, y, hello)
+                            print(f"Multisended: {msg}")
+                            await q.put(msg)
                     elif message.startswith("attack "):
                         _, target_name, damage_str, weapon = (
                             shlex.split(message)
@@ -176,7 +209,8 @@ class MUDServer:
                         x, y = self.positions.get(me, (0, 0))
                         cell = self.field[y][x]
                         if not cell or cell[1] != target_name:
-                            ans = f"No {target_name} here"
+                            loc = self.client_locales[me]
+                            ans = self._("No {} here", loc).format(target_name)
                             print(f"Sended: {ans}")
                             writer.write(ans.encode())
                             await writer.drain()
@@ -186,33 +220,41 @@ class MUDServer:
                             cell[0] = hp_new
 
                             if hp_new > 0:
-                                ans = (
-                                    f"Attacked {target_name} with {weapon},"
-                                    f"now has {hp_new} hp"
-                                )
-                                broadcast = (
-                                    f"Monster {target_name} was"
-                                    f"attacked by player {me} "
-                                    f"using {weapon} and has {hp_new} hp"
-                                )
+                                loc = self.client_locales[me]
+                                ans = self.ngettext(
+                                    "Attacked {} with {}, damage {} hitpoint",
+                                    "Attacked {} with {}, damage {} hitpoints",
+                                    damage,
+                                    loc,
+                                ).format(target_name, weapon, damage)
                             else:
-                                ans = (
-                                    f"Attacked {target_name} with {weapon},"
-                                    f"{target_name} died"
-                                )
+                                loc = self.client_locales[me]
+                                ans = self._(
+                                    "Attacked {} with {}, {} died",
+                                    loc,
+                                ).format(target_name, weapon, target_name)
                                 self.field[y][x] = 0
-                                broadcast = (
-                                    f"Monster {target_name} was killed"
-                                    f"by player {me} "
-                                    f"using {weapon}"
-                                )
+
                             print(f"Sended: {ans}")
                             writer.write(ans.encode())
                             await writer.drain()
-                            for out in self.clients.values():
-                                if out != me:
-                                    print(f"Multisended: {broadcast}")
-                                    await out.put(broadcast)
+
+                            for other, q in self.clients.items():
+                                if other == me:
+                                    continue
+                                loc_other = self.client_locales[other]
+                                if hp_new > 0:
+                                    msg = self._(
+                                        "Monster {} was attacked by player {} using {} and has {} hp",
+                                        loc_other
+                                    ).format(target_name, me, weapon, hp_new)
+                                else:
+                                    msg = self._(
+                                        "Monster {} was killed by player {} using {}",
+                                        loc_other
+                                    ).format(target_name, me, weapon)
+                                print(f"Multisended: {msg}")
+                                await q.put(msg)
                     elif message.startswith("sayall "):
                         sayall, *msg = shlex.split(message)
                         ans = f"{me}: {msg[0]}"
@@ -220,46 +262,63 @@ class MUDServer:
                             print('Multisended: ', ans)
                             await out.put(ans)
                     elif message == "quit":
-                        ans = "До новых встреч!"
+                        loc = self.client_locales[me]
+                        ans = self._("Goodbye!", loc)
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
-                        leave_notice = f"Пользователь {me} отключился"
-                        for out in self.clients.values():
-                            if out != me:
-                                print(f"Multisended: {leave_notice}")
-                                await out.put(leave_notice)
+                        for other, q in self.clients.items():
+                            if other == me:
+                                continue
+                            loc = self.client_locales[other]
+                            notice = self._("User {} disconnected", loc).format(me)
+                            print(f"Multisended: {notice}")
+                            await q.put(notice)
                         del self.clients[me]
                         self.names.remove(me)
                         me = None
                     elif message == "help":
-                        ans = (
-                            "Команды:\n"
-                            "up/down/left/right — движение по фиелду\n"
-                            "attack — атаковать монстра\n"
-                            "addmon — добавить монстра\n"
-                            "quit — выйти из игры"
+                        loc = self.client_locales[me]
+                        ans = self._(
+                            "Commands:\nup/down/left/right — move\nattack — attack a monster\naddmon — add a monster\nquit — quit the game",
+                            loc,
                         )
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
                     elif message.startswith("movemonsters"):
                         parts = shlex.split(message)
+                        loc_self = self.client_locales[me]
                         if len(parts) == 2 and parts[1] in ("on", "off"):
                             self.roaming_enabled = (parts[1] == "on")
-                            ans = f"Бродячие монсты: {parts[1]}"
+                            ans = self._("Moving monsters: {}", loc_self).format(parts[1])
                         else:
-                            ans = "Usage: movemonsters [on|off]"
+                            ans = self._("Usage: movemonsters [on|off]", loc_self)
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
-                        
-                        broadcast = ans
-                        for out_q in self.clients.values():
-                            if out_q is not self.clients.get(me):
-                                await out_q.put(broadcast)
+                        for other, q in self.clients.items():
+                            if other == me:
+                                continue
+                            loc_other = self.client_locales[other]
+                            msg = self._("Moving monsters: {}", loc_other).format(parts[1])
+                            print(f"Multisended: {msg}")
+                            await q.put(msg)
+
+                    elif message.startswith("locale"):
+                        parts = shlex.split(message)
+                        loc = parts[1]
+                        if loc in LOCALES:
+                            self.client_locales[me] = loc
+                            ans = self._("Set up locale: {}", loc).format(loc)
+                        else:
+                            ans = "Unsupported locale"
+                        print(f"Sended: {ans}")
+                        writer.write(ans.encode())
+                        await writer.drain()
                     else:
-                        ans = "Неизвестная команда. Введите 'help'."
+                        loc = self.client_locales[me]
+                        ans = self._("Unknown command. Type 'help'.", loc)
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()

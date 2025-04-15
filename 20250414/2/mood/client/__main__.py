@@ -34,6 +34,19 @@ class MUDclient(cmd.Cmd):
         """Ход вправо."""
         soc.sendall(b"move 1 0\n")
 
+    def do_locale(self, arg):
+        """locale <locale_name> — установить языковую локаль (en_US или ru_RU)."""
+        if arg not in ("en_US", "ru_RU"):
+            print("Unsupported locale. Available: en_US, ru_RU.UTF-8")
+            return
+        soc.sendall(f"locale {arg}\n".encode())
+
+
+    def complete_locale(self, text, line, begidx, endidx):
+        """Автодополнение локали."""
+        return [l for l in ("en_US", "ru_RU") if l.startswith(text)]
+
+
     def do_addmon(self, arg):
         """
         Addmon <monster_name> hello <hello_string>.
@@ -212,7 +225,7 @@ if __name__ == "__main__":
     soc.sendall(f"{args.nickname}\n".encode())
     greeting = soc.recv(4096).decode().rstrip()
     print(greeting)
-    if greeting == "Пользователь уже зарегистрирован":
+    if greeting == "User already registered":
         soc.close()
         sys.exit(1)
 
