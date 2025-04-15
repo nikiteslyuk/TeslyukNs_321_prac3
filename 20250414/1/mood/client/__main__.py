@@ -113,6 +113,19 @@ class MUDclient(cmd.Cmd):
         self.running = False
         return True
 
+    def do_movemonsters(self, arg):
+        """movemonsters [on|off] — включить/выключить режим бродячих монстров."""
+        if arg not in ("on", "off"):
+            print("Usage: movemonsters [on|off]")
+            return
+        soc.sendall(f"movemonsters {arg}\n".encode())
+
+    def complete_movemonsters(self, text, line, begidx, endidx):
+        """Автодополнение для movemonsters."""
+        opts = ["on", "off"]
+        return [o for o in opts if o.startswith(text)]
+ 
+
     def complete_addmon(self, text, line, begidx, endidx):
         """Автодополнение для имени монстра."""
         words = (line[:endidx] + ".").split()

@@ -32,6 +32,7 @@ class MUDServer:
         self.names = set()
         self.positions = {}
         self.field = [[0]*10 for _ in range(10)]
+        self.roaming_enabled = True
         asyncio.create_task(self._roam_monsters())
 
     def encounter(self, y, x):
@@ -66,6 +67,8 @@ class MUDServer:
         }
         while True:
             await asyncio.sleep(30)
+            if not self.roaming_enabled:
+                continue
             mons = [(y,x, self.field[y][x]) 
                     for y in range(10) for x in range(10) 
                     if self.field[y][x]]
@@ -240,6 +243,21 @@ class MUDServer:
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
+                    elif message.startswith("movemonsters"):
+                        parts = shlex.split(message)
+                        if len(parts) == 2 and parts[1] in ("on", "off"):
+                            self.roaming_enabled = (parts[1] == "on")
+                            ans = f"Бродячие монсты: {parts[1]}"
+                        else:
+                            ans = "Usage: movemonsters [on|off]"
+                        print(f"Sended: {ans}")
+                        writer.write(ans.encode())
+                        await writer.drain()
+                        
+                        broadcast = ans
+                        for out_q in self.clients.values():
+                            if out_q is not self.clients.get(me):
+                                await out_q.put(broadcast)
                     else:
                         ans = "Неизвестная команда. Введите 'help'."
                         print(f"Sended: {ans}")

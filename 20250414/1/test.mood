@@ -1,3 +1,6 @@
+movemonsters off
+movemonsters on
+movemonsters off
 up
 up
 sayall 'hi, gamers!'
