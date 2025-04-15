@@ -1,0 +1,11 @@
+up
+up
+sayall 'hi, gamers!'
+addmon moose hp 16 hello 'moose wants to play MOOD' coords 9 2
+left
+attack moose
+attack moose with axe
+right
+down
+sayall "testing complete - I'm out"
+quit
