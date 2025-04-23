@@ -133,3 +133,85 @@ msgstr[0] "{} теперь имеет {} очко здоровья"
 msgstr[1] "{} теперь имеет {} очков здоровья"
 msgstr[2] ""
 
+#~ msgid "User already registered"
+#~ msgstr "Пользователь уже зарегистрирован"
+
+#~ msgid "Welcome, {}!"
+#~ msgstr "Добро пожаловать, {}!"
+
+#~ msgid "{} has connected"
+#~ msgstr "{} подключился"
+
+#~ msgid "Moved to {} {}"
+#~ msgstr "Перемещён в {} {}"
+
+#~ msgid "Added monster {} to ({}, {}) saying {}"
+#~ msgstr "Монстр {} добавлен в ({}, {}) с сообщением: {}"
+
+#~ msgid "Replaced the old monster"
+#~ msgstr "Старый монстр заменён"
+
+#~ msgid "Monster {} was added by player {} at ({},{}) saying '{}'"
+#~ msgstr "Монстр {} был добавлен игроком {} в ({},{}) с сообщением '{}'"
+
+#~ msgid "No {} here"
+#~ msgstr "Здесь нет {}"
+
+#~ msgid "Attacked {} with {}, damage {} hitpoint"
+#~ msgid_plural "Attacked {} with {}, damage {} hitpoints"
+#~ msgstr[0] "Атакован {} с помощью {}, урон {} очко здоровья"
+#~ msgstr[1] "Атакован {} с помощью {}, урон {} очков здоровья"
+#~ msgstr[2] ""
+
+#~ msgid "Monster {} was attacked by player {} using {} and has {} hp"
+#~ msgstr ""
+#~ "Монстр {} был атакован игроком {} "
+#~ "с помощью {} и теперь имеет {} "
+#~ "очков здоровья"
+
+#~ msgid "Attacked {} with {}, {} died"
+#~ msgstr "Атакован {} с помощью {}, {} погиб"
+
+#~ msgid "Monster {} was killed by player {} using {}"
+#~ msgstr "Монстр {} был убит игроком {} с помощью {}"
+
+#~ msgid "Goodbye!"
+#~ msgstr "До новых встреч!"
+
+#~ msgid "User {} disconnected"
+#~ msgstr "Пользователь {} отключился"
+
+#~ msgid ""
+#~ "Commands:\n"
+#~ "up/down/left/right — move\n"
+#~ "attack — attack a monster\n"
+#~ "addmon — add a monster\n"
+#~ "quit — quit the game"
+#~ msgstr ""
+#~ "Команды:\n"
+#~ "up/down/left/right — движение\n"
+#~ "attack — атаковать монстра\n"
+#~ "addmon — добавить монстра\n"
+#~ "quit — выйти из игры"
+
+#~ msgid "Moving monsters: {}"
+#~ msgstr "Бродячие монстры: {}"
+
+#~ msgid "Usage: movemonsters [on|off]"
+#~ msgstr "Использование: movemonsters [on|off]"
+
+#~ msgid "Unknown command. Type 'help'."
+#~ msgstr "Неизвестная команда. Введите 'help'."
+
+#~ msgid "Set up locale: {}"
+#~ msgstr "Установлена локаль: {}"
+
+#~ msgid "{} moved one cell {}"
+#~ msgstr "{} переместился на одну клетку {}"
+
+#~ msgid "{} now has {} hitpoint"
+#~ msgid_plural "{} now has {} hitpoints"
+#~ msgstr[0] "{} теперь имеет {} очко здоровья"
+#~ msgstr[1] "{} теперь имеет {} очков здоровья"
+#~ msgstr[2] ""
+

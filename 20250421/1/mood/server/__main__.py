@@ -182,7 +182,7 @@ class MUDServer:
                         y, x = int(y_str), int(x_str)
                         loc = self.client_locales[me]
                         ans = self._(
-                            "Added monster {} to ({}, {}) saying {} ",
+                            "Added monster {} to ({}, {}) saying {}",
                             loc,
                         ).format(name, x, y, hello)
                         if self.field[y][x]:
