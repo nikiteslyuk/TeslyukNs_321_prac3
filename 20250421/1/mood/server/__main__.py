@@ -16,6 +16,7 @@ import random, asyncio
 import gettext
 import locale
 import os
+import sys
 
 
 locales_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "locales")
@@ -170,7 +171,7 @@ class MUDServer:
                         loc = self.client_locales[me]
                         ans = self._("Moved to {} {}", loc).format(new_x, new_y)
                         if self.field[new_y][new_x]:
-                            ans += "\n" + self.encounter(new_y, new_x)
+                            ans += "\n" + self._("Moved to ...\n", loc) + self.encounter(new_y, new_x)
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
@@ -181,7 +182,7 @@ class MUDServer:
                         y, x = int(y_str), int(x_str)
                         loc = self.client_locales[me]
                         ans = self._(
-                            "Added monster {} to ({}, {}) saying {}. ",
+                            "Added monster {} to ({}, {}) saying {} ",
                             loc,
                         ).format(name, x, y, hello)
                         if self.field[y][x]:
@@ -222,11 +223,17 @@ class MUDServer:
                             if hp_new > 0:
                                 loc = self.client_locales[me]
                                 ans = self.ngettext(
-                                    "Attacked {} with {}, damage {} hitpoint",
-                                    "Attacked {} with {}, damage {} hitpoints",
+                                    "Attacked {} with {}, damage {} hitpoint\n",
+                                    "Attacked {} with {}, damage {} hitpoints\n",
                                     damage,
                                     loc,
-                                ).format(target_name, weapon, damage)
+                                ).format(target_name, weapon, damage, target_name, hp_new)
+                                ans += self.ngettext(
+                                    "{} now has {} hitpoint",
+                                    "{} now has {} hitpoints",
+                                    hp_new, 
+                                    loc
+                                    ).format(target_name, hp_new)
                             else:
                                 loc = self.client_locales[me]
                                 ans = self._(
@@ -336,13 +343,17 @@ class MUDServer:
         await writer.wait_closed()
 
 
-async def process():
+async def process_serv():
     """Главный цикл сервера."""
     m = MUDServer()
     server = await asyncio.start_server(m.server, "0.0.0.0", 1337)
     async with server:
         await server.serve_forever()
 
+def start_server():
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = open(os.devnull, 'w')
+    asyncio.run(process_serv())
 
 if __name__ == "__main__":
-    asyncio.run(process())
+    asyncio.run(process_serv())

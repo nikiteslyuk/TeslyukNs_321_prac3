@@ -118,3 +118,8 @@ msgstr "Установлена локаль: {}"
 
 msgid "{} moved one cell {}"
 msgstr "{} переместился на одну клетку {}"
+
+msgid "{} now has {} hitpoint"
+msgid_plural "{} now has {} hitpoints"
+msgstr[0] "{} теперь имеет {} очко здоровья"
+msgstr[1] "{} теперь имеет {} очков здоровья"
