@@ -11,7 +11,8 @@ DOIT_CONFIG = {
 SRC_DIR = Path("mood")
 LOCALE_DIR = Path("mood/locales")
 DOC_SRC = Path("docs/source")
-DOC_BUILD = Path("docs/build/html")
+BUILD_ROOT = DOC_SRC.parent / "build"
+BUILD_HTML = BUILD_ROOT / "html"
 
 
 def task_pot():
@@ -63,20 +64,19 @@ def task_i18n():
 def task_html():
     """Собрать HTML-документацию Sphinx."""
     static_dir = DOC_SRC / "_static"
-    build_dir = DOC_BUILD.as_posix()
     return {
         "actions": [
-            (shutil.rmtree, [build_dir], {"ignore_errors": True}),
+            (shutil.rmtree, [str(BUILD_ROOT)], {"ignore_errors": True}),
             (create_folder, [str(static_dir)]),
-            f"sphinx-build -b html {DOC_SRC.as_posix()} {build_dir}",
+            f"sphinx-build -b html {DOC_SRC.as_posix()} {BUILD_HTML.as_posix()}",
         ],
         "file_dep": (
             [str(p) for p in DOC_SRC.rglob("*.rst")]
             + [str(p) for p in DOC_SRC.rglob("*.py")]
             + ["docs/Makefile"]
         ),
-        "targets": [f"{build_dir}/index.html"],
-        "clean": True,
+        "targets": [str(BUILD_ROOT)],
+        "clean": [(shutil.rmtree, [str(BUILD_ROOT)], {"ignore_errors": True})],
     }
 
 
