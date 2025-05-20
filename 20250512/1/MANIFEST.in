@@ -1,0 +1,8 @@
+recursive-include mood *.py
+recursive-include mood *.po
+recursive-include mood *.mo
+recursive-include mood *.rst
+recursive-include mood *.txt
+recursive-include mood *.html
+recursive-include mood/docs/build/html *
+include *.md

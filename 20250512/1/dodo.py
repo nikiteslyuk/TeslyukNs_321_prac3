@@ -9,9 +9,9 @@ DOIT_CONFIG = {
 
 # Пути к исходникам и локалям
 SRC_DIR = Path("mood")
-LOCALE_DIR = Path("mood/locales")
-DOC_SRC = Path("docs/source")
-BUILD_ROOT = DOC_SRC.parent / "build"
+LOCALE_DIR = SRC_DIR / "locales"
+DOC_SRC = SRC_DIR / "docs" / "source"
+BUILD_ROOT = SRC_DIR / "docs" / "build"
 BUILD_HTML = BUILD_ROOT / "html"
 
 
@@ -62,18 +62,21 @@ def task_i18n():
 
 
 def task_html():
-    """Собрать HTML-документацию Sphinx."""
+    """Собрать HTML-документацию Sphinx сразу в mood/docs/build/html."""
     static_dir = DOC_SRC / "_static"
     return {
         "actions": [
+            # удаляем весь каталог build
             (shutil.rmtree, [str(BUILD_ROOT)], {"ignore_errors": True}),
+            # создаём пустой _static
             (create_folder, [str(static_dir)]),
+            # собственно сборка
             f"sphinx-build -b html {DOC_SRC.as_posix()} {BUILD_HTML.as_posix()}",
         ],
         "file_dep": (
-            [str(p) for p in DOC_SRC.rglob("*.rst")]
+            [str(DOC_SRC.parent / "Makefile")]
+            + [str(p) for p in DOC_SRC.rglob("*.rst")]
             + [str(p) for p in DOC_SRC.rglob("*.py")]
-            + ["docs/Makefile"]
         ),
         "targets": [str(BUILD_ROOT)],
         "clean": [(shutil.rmtree, [str(BUILD_ROOT)], {"ignore_errors": True})],
@@ -88,4 +91,18 @@ def task_test():
             "python3 -m mood.tests.server_test -v",
         ],
         "task_dep": ["i18n"],
+    }
+
+
+def task_wheel():
+    """Create build with wheel."""
+    return {
+        "actions": ["python3 -m build --wheel"],
+    }
+
+
+def task_sdist():
+    """Create build with sdist."""
+    return {
+        "actions": ["python3 -m build --sdist"],
     }

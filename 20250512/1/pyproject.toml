@@ -1,0 +1,37 @@
+[project]
+name = "MOOD"
+description = "Multi User Dungeon"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+  "python-cowsay",
+]
+license = "MIT"
+authors = [
+  { name = "Nikita Teslyuk", email = "nikita.teslyk@yandex.ru" },
+]
+
+[project.scripts]
+moodclient = "mood.client:run"
+moodserver = "mood.server:run"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mood*"]
+
+[tool.setuptools.package-data]
+MOOD = [
+  "locales/*/*/*.mo",
+  "locales/*/*/*.po",
+  "client/*.py",
+  "server/*.py",
+  "tests/*",
+  "custom_monsters/*.txt",
+  "docs/html/*.html",
+  "docs/html/**/*",
+]
+

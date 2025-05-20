@@ -8,6 +8,7 @@ sphinx = "*"
 sphinx-rtd-theme = "*"
 python-cowsay = "*"
 doit = "*"
+build = "*"
 
 [dev-packages]
 doit = "*"
