@@ -26,16 +26,20 @@ def task_pot():
 
 
 def task_po():
-    """Обновить .po-файл."""
+    """Создать или обновить .po-файл."""
     po_path = LOCALE_DIR / "ru_RU.UTF-8" / "LC_MESSAGES" / "MOOD.po"
+    cmd_init = f"pybabel init -D MOOD -i MOOD.pot -d {LOCALE_DIR} -l ru_RU.UTF-8"
+    cmd_update = f"pybabel update -D MOOD -i MOOD.pot -d {LOCALE_DIR} -l ru_RU.UTF-8"
     return {
         "actions": [
-            f"pybabel update -D MOOD -d {LOCALE_DIR.as_posix()} -l ru_RU.UTF-8 -i MOOD.pot"
+            f"mkdir -p {po_path.parent}",
+            f"test -f {po_path} || ({cmd_init})",
+            f"test -f {po_path} && ({cmd_update})",
         ],
-        "file_dep": ["MOOD.pot"],
-        "targets": [str(po_path)],
+        "verbosity": 2,
         "clean": True,
     }
+    
 
 
 def task_mo():

@@ -57,10 +57,12 @@ msgstr "Здесь нет {}"
 
 #: mood/server/__main__.py:189
 #, python-brace-format
-msgid "Attacked {} with {}, damage {} hitpoint"
-msgid_plural "Attacked {} with {}, damage {} hitpoints"
-msgstr[0] "Атакован {} с помощью {}, урон {} очко здоровья"
-msgstr[1] "Атакован {} с помощью {}, урон {} очков здоровья"
+msgid "Attacked {} with {}, damage {} hitpoint\n"
+msgid_plural "Attacked {} with {}, damage {} hitpoints\n"
+msgstr[0] "Атакован {} с помощью {}, урон {} очко здоровья\n"
+msgstr[1] "Атакован {} с помощью {}, урон {} очка здоровья\n"
+msgstr[2] "Атакован {} с помощью {}, урон {} очков здоровья\n"
+
 
 #: mood/server/__main__.py:195
 #, python-brace-format
@@ -122,5 +124,7 @@ msgstr "{} переместился на одну клетку {}"
 msgid "{} now has {} hitpoint"
 msgid_plural "{} now has {} hitpoints"
 msgstr[0] "{} теперь имеет {} очко здоровья"
-msgstr[1] "{} теперь имеет {} очков здоровья"
+msgstr[1] "{} теперь имеет {} очка здоровья"
+msgstr[2] "{} теперь имеет {} очков здоровья"
+
 

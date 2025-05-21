@@ -106,7 +106,7 @@ class MUDclient(cmd.Cmd):
         if hp <= 0:
             print("Invalid arguments")
             return
-        valid_cows = cowsay.list_cows() + ["jgsbat"]
+        valid_cows = cowsay.list_cows() + ["jgsbat", "gamer"]
         if name not in valid_cows:
             print("Invalid arguments")
             return

@@ -233,7 +233,7 @@ class MUDServer:
                                     "Attacked {} with {}, damage {} hitpoints\n",
                                     damage,
                                     loc,
-                                ).format(target_name, weapon, damage, target_name, hp_new)
+                                ).format(target_name, weapon, damage)
                                 ans += self.ngettext(
                                     "{} now has {} hitpoint",
                                     "{} now has {} hitpoints",

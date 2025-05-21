@@ -1,6 +1,7 @@
 movemonsters off
 movemonsters on
 movemonsters off
+locale ru_RU
 up
 up
 sayall 'hi, gamers!'
