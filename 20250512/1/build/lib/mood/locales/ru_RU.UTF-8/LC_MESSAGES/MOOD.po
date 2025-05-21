@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2025-05-25 19:09+0300\n"
-"PO-Revision-Date: 2025-05-26 05:13+0300\n"
+"PO-Revision-Date: 2025-05-26 05:34+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ru_RU\n"
 "Language-Team: ru_RU <LL@li.org>\n"
@@ -37,6 +37,9 @@ msgstr "{} подключился"
 #, python-brace-format
 msgid "Moved to {} {}"
 msgstr "Перемещён в {} {}"
+
+msgid "Moved to ...\n"
+msgstr "Нарвался на ...\n"
 
 #: mood/server/__main__.py:153
 #, python-brace-format

@@ -81,6 +81,7 @@ class MUDServer:
             gamer_dir = Path(__file__).parent / ".." / "custom_monsters" / "gamer.txt"
             with open(gamer_dir) as f:
                 gamer = cowsay.read_dot_cow(StringIO("".join(f.readlines())))
+            return cowsay.cowsay(message, cowfile=gamer)
         else:
             return cowsay.cowsay(message, cow=name)
 

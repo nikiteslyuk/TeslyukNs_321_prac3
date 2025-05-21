@@ -36,6 +36,9 @@ msgstr "{} подключился"
 msgid "Moved to {} {}"
 msgstr "Перемещён в {} {}"
 
+msgid "Moved to ...\n"
+msgstr "Нарвался на ...\n"
+
 #: mood/server/__main__.py:153
 #, python-brace-format
 msgid "Added monster {} to ({}, {}) saying {}"
