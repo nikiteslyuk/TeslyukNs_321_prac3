@@ -14,6 +14,7 @@ import webbrowser
 from pathlib import Path
 import importlib.resources as pkg_resources
 
+
 class MUDclient(cmd.Cmd):
     """Реализация клиента."""
 
@@ -21,9 +22,9 @@ class MUDclient(cmd.Cmd):
     running = True
 
     def __init__(self, soc=None):
+        """Init."""
         super().__init__()
         self.soc = soc or socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
 
     def do_up(self, arg):
         """Ход вверх."""
@@ -42,25 +43,28 @@ class MUDclient(cmd.Cmd):
         self.soc.sendall(b"move 1 0\n")
 
     def do_locale(self, arg):
-        """locale <locale_name> — установить языковую локаль (en_US или ru_RU)."""
+        """Команда locale <locale_name>.
+
+        — установить языковую локаль (en_US или ru_RU).
+        """
         if arg not in ("en_US", "ru_RU"):
             print("Unsupported locale. Available: en_US, ru_RU")
             return
         self.soc.sendall(f"locale {arg}\n".encode())
 
-
     def complete_locale(self, text, line, begidx, endidx):
         """Автодополнение локали."""
-        return [l for l in ("en_US", "ru_RU") if l.startswith(text)]
-
+        return [lo for lo in ("en_US", "ru_RU") if lo.startswith(text)]
 
     def do_documentation(self, arg):
         """Open generated HTML docs in the browser."""
         # 1) если запущено из установленного пакета,
         #    смотрим на files('mood').parent — это корень установки
         try:
-            install_root = pkg_resources.files('mood').parent
-            docs_index = install_root / 'docs' / 'build' / 'html' / 'index.html'
+            install_root = pkg_resources.files('mood')
+            docs_index = (
+                install_root / 'docs' / 'build' / 'html' / 'index.html'
+            )
             if docs_index.exists():
                 webbrowser.open(docs_index.as_uri())
                 return
@@ -69,14 +73,16 @@ class MUDclient(cmd.Cmd):
 
         # 2) fallback на исходники (локально при разработке)
         index_file = (
-            Path(__file__).parents[2]  # из mood/client/__main__.py -> …/ (корень проекта)
+            # из mood/client/__main__.py -> …/ (корень проекта)
+            Path(__file__).parents[2]
             / "docs" / "build" / "html" / "index.html"
         )
         if index_file.exists():
             webbrowser.open(index_file.resolve().as_uri())
         else:
-            print("Documentation not found, run `doit html` first.", file=sys.stderr)
-
+            print(
+                "Documentation not found, run `doit html` first.",
+                file=sys.stderr)
 
     def do_addmon(self, arg):
         """
@@ -161,7 +167,10 @@ class MUDclient(cmd.Cmd):
         return True
 
     def do_movemonsters(self, arg):
-        """movemonsters [on|off] — включить/выключить режим бродячих монстров."""
+        """Команда movemonsters [on|off].
+
+        — включить/выключить режим бродячих монстров.
+        """
         if arg not in ("on", "off"):
             print("Usage: movemonsters [on|off]")
             return
@@ -171,7 +180,6 @@ class MUDclient(cmd.Cmd):
         """Автодополнение для movemonsters."""
         opts = ["on", "off"]
         return [o for o in opts if o.startswith(text)]
- 
 
     def complete_addmon(self, text, line, begidx, endidx):
         """Автодополнение для имени монстра."""
@@ -231,9 +239,9 @@ def spam(cmdline, timeout, soc):
 def run_script_mode(filename, cmdline):
     """
     Читает файл строка за строкой, убирает номера и вызывает cmdline.onecmd().
+
     Между вызовами ждёт 1 сек, а при quit — выходит сразу.
     """
-
     with open(filename, encoding='utf-8') as f:
         for line in f:
             raw = line.strip()
@@ -247,9 +255,15 @@ def run_script_mode(filename, cmdline):
 
 
 def run():
-    parser = argparse.ArgumentParser(description="MUD client: interactive or script mode.")
+    """Run."""
+    parser = argparse.ArgumentParser(
+        description="MUD client: interactive or script mode.")
     parser.add_argument('nickname', help='Your player nickname')
-    parser.add_argument('--file', '-f', metavar='FILE', help='Script file with commands (.mood)')
+    parser.add_argument(
+        '--file',
+        '-f',
+        metavar='FILE',
+        help='Script file with commands (.mood)')
     args = parser.parse_args()
 
     host = "localhost"
@@ -264,8 +278,10 @@ def run():
         sys.exit(1)
 
     cmdline = MUDclient(soc)
-    reader = threading.Thread(target=spam, args=(cmdline, 0.1, soc), daemon=True)
-     
+    reader = threading.Thread(
+        target=spam, args=(
+            cmdline, 0.1, soc), daemon=True)
+
     reader.start()
 
     if args.file:
@@ -275,6 +291,6 @@ def run():
 
     soc.close()
 
+
 if __name__ == "__main__":
     run()
-
