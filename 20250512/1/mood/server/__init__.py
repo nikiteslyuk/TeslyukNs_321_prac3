@@ -1,2 +1,2 @@
 """MUD server initial."""
-# from .__main__ import *
+from .__main__ import *
