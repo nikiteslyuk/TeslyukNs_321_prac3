@@ -12,16 +12,18 @@ import asyncio
 import cowsay
 import shlex
 from io import StringIO
-import random, asyncio
+import random
 import gettext
 import locale
 import os
 import sys
 from pathlib import Path
-from importlib.resources import files
 
 
-locales_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "locales")
+locales_dir = os.path.join(
+    os.path.dirname(
+        os.path.dirname(__file__)),
+    "locales")
 LOCALES = {
     "en_US": gettext.translation("MOOD", locales_dir, ["en"], fallback=True),
     "ru_RU": gettext.translation("MOOD", locales_dir, ["ru"], fallback=True),
@@ -39,16 +41,19 @@ class MUDServer:
         field (List[List[Union[int,list]]]): игровое поле 10×10.
     """
 
-
     def __init__(self):
+        """Init."""
         locale.setlocale(locale.LC_ALL, '')
         self.client_locales = {}
         self.clients = {}
         self.names = set()
         self.positions = {}
-        self.field = [[0]*10 for _ in range(10)]
+        self.field = [[0] * 10 for _ in range(10)]
         self.roaming_enabled = True
-        self.locales_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "locales")
+        self.locales_dir = os.path.join(
+            os.path.dirname(
+                os.path.dirname(__file__)),
+            "locales")
         self.LOCALES = LOCALES
         asyncio.create_task(self._roam_monsters())
 
@@ -78,38 +83,37 @@ class MUDServer:
         if name == "jgsbat":
             return cowsay.cowsay(message, cowfile=jgsbat)
         elif name == "gamer":
-            gamer_dir = Path(__file__).parent / ".." / "custom_monsters" / "gamer.txt"
+            gamer_dir = Path(__file__).parent / ".." / \
+                "custom_monsters" / "gamer.txt"
             with open(gamer_dir) as f:
                 gamer = cowsay.read_dot_cow(StringIO("".join(f.readlines())))
             return cowsay.cowsay(message, cowfile=gamer)
         else:
             return cowsay.cowsay(message, cow=name)
 
-
-
     async def _roam_monsters(self):
         """Каждые 30 сек выбираем рандомного монстра и двигаем."""
         dirs = {
-            "up":    (1, 0),
-            "down":  (-1,0),
-            "right":(0, 1),
-            "left": (0,-1),
+            "up": (1, 0),
+            "down": (-1, 0),
+            "right": (0, 1),
+            "left": (0, -1),
         }
         while True:
             await asyncio.sleep(30)
             if not self.roaming_enabled:
                 continue
-            mons = [(y,x, self.field[y][x]) 
-                    for y in range(10) for x in range(10) 
+            mons = [(y, x, self.field[y][x])
+                    for y in range(10) for x in range(10)
                     if self.field[y][x]]
             if not mons:
                 continue
             while True:
                 y, x, cell = random.choice(mons)
                 name = cell[1]
-                direction, (dy,dx) = random.choice(list(dirs.items()))
-                ny = (y+dy) % 10
-                nx = (x+dx) % 10
+                direction, (dy, dx) = random.choice(list(dirs.items()))
+                ny = (y + dy) % 10
+                nx = (x + dx) % 10
                 if self.field[ny][nx]:
                     continue
                 self.field[ny][nx] = cell
@@ -117,11 +121,13 @@ class MUDServer:
                 break
             for other, q in self.clients.items():
                 loc = self.client_locales.get(other, "en_US")
-                roaming_msg = self._("{} moved one cell {}", loc).format(name, direction)
+                roaming_msg = self._(
+                    "{} moved one cell {}", loc).format(
+                    name, direction)
                 print(f"Multisended: {roaming_msg}")
                 await q.put(roaming_msg)
             for player, pos in self.positions.items():
-                if pos == (ny,nx):
+                if pos == (ny, nx):
                     text = self.encounter(ny, nx)
                     await self.clients[player].put(text)
 
@@ -176,9 +182,16 @@ class MUDServer:
                         new_y = (old_y + dy) % 10
                         self.positions[me] = (new_x, new_y)
                         loc = self.client_locales[me]
-                        ans = self._("Moved to {} {}", loc).format(new_x, new_y)
+                        ans = self._(
+                            "Moved to {} {}", loc).format(
+                            new_x, new_y)
                         if self.field[new_y][new_x]:
-                            ans += "\n" + self._("Moved to ...\n", loc) + self.encounter(new_y, new_x)
+                            ans += (
+                                "\n"
+                                + self._("Moved to ...\n", loc)
+                                + self.encounter(new_y, new_x)
+                            )
+
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
@@ -203,10 +216,13 @@ class MUDServer:
                             if other == me:
                                 continue
                             loc = self.client_locales[other]
+                            template = (
+                                "Monster {} was added by player "
+                                "{} at ({},{}) saying '{}'"
+                                )
                             msg = self._(
-                                "Monster {} was added by player {} at ({},{}) saying '{}'",
-                                loc
-                            ).format(name, me, x, y, hello)
+                                template, loc).format(
+                                name, me, x, y, hello)
                             print(f"Multisended: {msg}")
                             await q.put(msg)
                     elif message.startswith("attack "):
@@ -229,18 +245,29 @@ class MUDServer:
 
                             if hp_new > 0:
                                 loc = self.client_locales[me]
+                                t1 = (
+                                    "Attacked {} with {}, "
+                                    "damage {} hitpoint\n"
+                                )
+                                t2 = (
+                                    "Attacked {} with {}, "
+                                    "damage {} hitpoints\n"
+                                )
                                 ans = self.ngettext(
-                                    "Attacked {} with {}, damage {} hitpoint\n",
-                                    "Attacked {} with {}, damage {} hitpoints\n",
+                                    t1,
+                                    t2,
                                     damage,
                                     loc,
-                                ).format(target_name, weapon, damage)
+                                ).format(
+                                    target_name,
+                                    weapon,
+                                    damage)
                                 ans += self.ngettext(
                                     "{} now has {} hitpoint",
                                     "{} now has {} hitpoints",
-                                    hp_new, 
+                                    hp_new,
                                     loc
-                                    ).format(target_name, hp_new)
+                                ).format(target_name, hp_new)
                             else:
                                 loc = self.client_locales[me]
                                 ans = self._(
@@ -258,15 +285,26 @@ class MUDServer:
                                     continue
                                 loc_other = self.client_locales[other]
                                 if hp_new > 0:
+                                    t = (
+                                        "Monster {} was attacked by "
+                                        "player {} using {} "
+                                        "and has {} hp"
+                                    )
                                     msg = self._(
-                                        "Monster {} was attacked by player {} using {} and has {} hp",
-                                        loc_other
-                                    ).format(target_name, me, weapon, hp_new)
+                                        t,
+                                        loc_other).format(
+                                        target_name,
+                                        me,
+                                        weapon,
+                                        hp_new)
                                 else:
+                                    t = (
+                                        "Monster {} was killed "
+                                        "by player {} using {}"
+                                    )
                                     msg = self._(
-                                        "Monster {} was killed by player {} using {}",
-                                        loc_other
-                                    ).format(target_name, me, weapon)
+                                        t, loc_other).format(
+                                        target_name, me, weapon)
                                 print(f"Multisended: {msg}")
                                 await q.put(msg)
                     elif message.startswith("sayall "):
@@ -285,7 +323,8 @@ class MUDServer:
                             if other == me:
                                 continue
                             loc = self.client_locales[other]
-                            notice = self._("User {} disconnected", loc).format(me)
+                            notice = self._(
+                                "User {} disconnected", loc).format(me)
                             print(f"Multisended: {notice}")
                             await q.put(notice)
                         del self.clients[me]
@@ -293,8 +332,15 @@ class MUDServer:
                         me = None
                     elif message == "help":
                         loc = self.client_locales[me]
+                        t = (
+                            "Commands:\n"
+                            "up/down/left/right — move\n"
+                            "attack — attack a monster\n"
+                            "addmon — add a monster\n"
+                            "quit — quit the game"
+                        )
                         ans = self._(
-                            "Commands:\nup/down/left/right — move\nattack — attack a monster\naddmon — add a monster\nquit — quit the game",
+                            t,
                             loc,
                         )
                         print(f"Sended: {ans}")
@@ -305,9 +351,13 @@ class MUDServer:
                         loc_self = self.client_locales[me]
                         if len(parts) == 2 and parts[1] in ("on", "off"):
                             self.roaming_enabled = (parts[1] == "on")
-                            ans = self._("Moving monsters: {}", loc_self).format(parts[1])
+                            ans = self._(
+                                "Moving monsters: {}",
+                                loc_self).format(
+                                parts[1])
                         else:
-                            ans = self._("Usage: movemonsters [on|off]", loc_self)
+                            ans = self._(
+                                "Usage: movemonsters [on|off]", loc_self)
                         print(f"Sended: {ans}")
                         writer.write(ans.encode())
                         await writer.drain()
@@ -315,7 +365,10 @@ class MUDServer:
                             if other == me:
                                 continue
                             loc_other = self.client_locales[other]
-                            msg = self._("Moving monsters: {}", loc_other).format(parts[1])
+                            msg = self._(
+                                "Moving monsters: {}",
+                                loc_other).format(
+                                parts[1])
                             print(f"Multisended: {msg}")
                             await q.put(msg)
 
@@ -357,13 +410,18 @@ async def process_serv():
     async with server:
         await server.serve_forever()
 
+
 def start_server():
+    """Start server."""
     sys.stdout = open(os.devnull, 'w')
     sys.stderr = open(os.devnull, 'w')
     asyncio.run(process_serv())
 
+
 def run():
+    """Run."""
     asyncio.run(process_serv())
+
 
 if __name__ == "__main__":
     run()

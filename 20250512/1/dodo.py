@@ -1,3 +1,4 @@
+"""Dodo.py."""
 import shutil
 from pathlib import Path
 from doit.tools import create_folder
@@ -28,8 +29,14 @@ def task_pot():
 def task_po():
     """Создать или обновить .po-файл."""
     po_path = LOCALE_DIR / "ru_RU.UTF-8" / "LC_MESSAGES" / "MOOD.po"
-    cmd_init = f"pybabel init -D MOOD -i MOOD.pot -d {LOCALE_DIR} -l ru_RU.UTF-8"
-    cmd_update = f"pybabel update -D MOOD -i MOOD.pot -d {LOCALE_DIR} -l ru_RU.UTF-8"
+    cmd_init = (
+        f"pybabel init -D MOOD -i "
+        f"MOOD.pot -d {LOCALE_DIR} -l ru_RU.UTF-8"
+    )
+    cmd_update = (
+        f"pybabel update -D MOOD -i "
+        f"MOOD.pot -d {LOCALE_DIR} -l ru_RU.UTF-8"
+    )
     return {
         "actions": [
             f"mkdir -p {po_path.parent}",
@@ -39,17 +46,20 @@ def task_po():
         "verbosity": 2,
         "clean": True,
     }
-    
 
 
 def task_mo():
     """Скомпилировать .po → .mo."""
     locale_subdir = LOCALE_DIR / "ru_RU.UTF-8" / "LC_MESSAGES"
     mo_path = locale_subdir / "MOOD.mo"
+    t = (
+        f"pybabel compile -D MOOD -l "
+        f"ru_RU.UTF-8 -d {LOCALE_DIR.as_posix()}"
+    )
     return {
         "actions": [
             (create_folder, [str(locale_subdir)]),
-            f"pybabel compile -D MOOD -l ru_RU.UTF-8 -d {LOCALE_DIR.as_posix()}",
+            t,
         ],
         "file_dep": [str(locale_subdir / "MOOD.po")],
         "targets": [str(mo_path)],
@@ -68,6 +78,10 @@ def task_i18n():
 def task_html():
     """Собрать HTML-документацию Sphinx сразу в mood/docs/build/html."""
     static_dir = DOC_SRC / "_static"
+    t = (
+        f"sphinx-build -b html "
+        f"{DOC_SRC.as_posix()} {BUILD_HTML.as_posix()}"
+    )
     return {
         "actions": [
             # удаляем весь каталог build
@@ -75,7 +89,7 @@ def task_html():
             # создаём пустой _static
             (create_folder, [str(static_dir)]),
             # собственно сборка
-            f"sphinx-build -b html {DOC_SRC.as_posix()} {BUILD_HTML.as_posix()}",
+            t,
         ],
         "file_dep": (
             [str(DOC_SRC.parent / "Makefile")]
